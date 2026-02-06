@@ -147,6 +147,71 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          phone: string
+          success: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          phone: string
+          success?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          phone?: string
+          success?: boolean | null
+        }
+        Relationships: []
+      }
+      login_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: unknown
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           body: string
@@ -337,6 +402,7 @@ export type Database = {
         Row: {
           created_at: string | null
           deleted_at: string | null
+          display_name: string | null
           id: string
           is_active: boolean | null
           is_admin: boolean | null
@@ -347,6 +413,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           deleted_at?: string | null
+          display_name?: string | null
           id: string
           is_active?: boolean | null
           is_admin?: boolean | null
@@ -357,6 +424,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           deleted_at?: string | null
+          display_name?: string | null
           id?: string
           is_active?: boolean | null
           is_admin?: boolean | null
@@ -715,7 +783,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_login_rate_limit: {
+        Args: { p_ip: unknown; p_phone: string }
+        Returns: Json
+      }
+      cleanup_expired_sessions: { Args: never; Returns: number }
+      record_login_attempt: {
+        Args: { p_ip: unknown; p_phone: string; p_success: boolean }
+        Returns: undefined
+      }
+      revoke_all_user_sessions: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

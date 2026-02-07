@@ -788,11 +788,16 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      generate_vaccine_schedules_for_baby: {
+        Args: { p_baby_id: string }
+        Returns: number
+      }
       record_login_attempt: {
         Args: { p_ip: unknown; p_phone: string; p_success: boolean }
         Returns: undefined
       }
       revoke_all_user_sessions: { Args: { p_user_id: string }; Returns: number }
+      update_vaccine_schedule_statuses: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

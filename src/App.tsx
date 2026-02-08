@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BabyProvider } from "@/contexts/BabyContext";
+import { VaccineProvider } from "@/contexts/VaccineContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Pages
@@ -25,33 +26,35 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <BabyProvider>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/register" element={<Register />} />
-              
-              {/* Protected routes */}
-              <Route 
-                path="/account" 
-                element={
-                  <ProtectedRoute>
-                    <Account />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/babies" 
-                element={
-                  <ProtectedRoute>
-                    <BabiesPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <VaccineProvider>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/auth/login" element={<Login />} />
+                <Route path="/auth/register" element={<Register />} />
+                
+                {/* Protected routes */}
+                <Route 
+                  path="/account" 
+                  element={
+                    <ProtectedRoute>
+                      <Account />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/babies" 
+                  element={
+                    <ProtectedRoute>
+                      <BabiesPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </VaccineProvider>
           </BabyProvider>
         </AuthProvider>
       </BrowserRouter>

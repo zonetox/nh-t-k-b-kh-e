@@ -1,17 +1,32 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBaby } from '@/contexts/BabyContext';
+import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Syringe, LogIn, Baby, Calendar, Bell, Settings } from 'lucide-react';
+import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw } from 'lucide-react';
 import BabySelector from '@/components/baby/BabySelector';
 import AddBabyDialog from '@/components/baby/AddBabyDialog';
 import EmptyBabyState from '@/components/baby/EmptyBabyState';
+import UpcomingVaccinesPanel from '@/components/vaccine/UpcomingVaccinesPanel';
+import VaccineTimeline from '@/components/vaccine/VaccineTimeline';
+import VaccineStats from '@/components/vaccine/VaccineStats';
+import FullScheduleTable from '@/components/vaccine/FullScheduleTable';
+import VaccineScheduleDetail from '@/components/vaccine/VaccineScheduleDetail';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Dashboard: React.FC = () => {
   const { isAuthenticated, profile, logout } = useAuth();
-  const { babies, selectedBaby, isLoading } = useBaby();
+  const { babies, selectedBaby, isLoading: babiesLoading } = useBaby();
+  const { refresh, isLoading: vaccinesLoading } = useVaccine();
   const [addBabyOpen, setAddBabyOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<VaccineSchedule | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const handleSelectSchedule = (schedule: VaccineSchedule) => {
+    setSelectedSchedule(schedule);
+    setDetailOpen(true);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -141,8 +156,8 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {isLoading ? (
+      <main className="container mx-auto px-4 py-6">
+        {babiesLoading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
           </div>
@@ -150,32 +165,60 @@ const Dashboard: React.FC = () => {
           <EmptyBabyState onAddBaby={() => setAddBabyOpen(true)} />
         ) : selectedBaby ? (
           <div className="space-y-6">
-            {/* Welcome message */}
-            <div className="text-center py-8">
-              <h1 className="text-2xl font-bold mb-2">
-                Lịch tiêm chủng của bé {selectedBaby.name}
-              </h1>
-              <p className="text-muted-foreground">
-                Theo dõi và quản lý lịch tiêm chủng cho bé
-              </p>
+            {/* Header with baby name and refresh */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">
+                  Lịch tiêm của bé {selectedBaby.name}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  Theo dõi và quản lý lịch tiêm chủng cho bé
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refresh}
+                disabled={vaccinesLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${vaccinesLoading ? 'animate-spin' : ''}`} />
+                Làm mới
+              </Button>
             </div>
-            
-            {/* Placeholder for vaccine schedule - will be implemented in PROMPT 6 */}
-            <div className="text-center py-12 border rounded-lg bg-muted/30">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                Dashboard lịch tiêm sẽ được hiển thị ở đây
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                (Sẽ triển khai trong PROMPT 6 - Vaccine Engine)
-              </p>
-            </div>
+
+            {/* Stats */}
+            <VaccineStats />
+
+            {/* Urgent vaccines panel */}
+            <UpcomingVaccinesPanel onSelectSchedule={handleSelectSchedule} />
+
+            {/* Main content tabs */}
+            <Tabs defaultValue="timeline" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                <TabsTrigger value="list">Danh sách</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="timeline">
+                <VaccineTimeline onSelectSchedule={handleSelectSchedule} />
+              </TabsContent>
+              
+              <TabsContent value="list">
+                <FullScheduleTable onSelectSchedule={handleSelectSchedule} />
+              </TabsContent>
+            </Tabs>
           </div>
         ) : null}
       </main>
 
-      {/* Add Baby Dialog */}
+      {/* Dialogs */}
       <AddBabyDialog open={addBabyOpen} onOpenChange={setAddBabyOpen} />
+      
+      <VaccineScheduleDetail 
+        schedule={selectedSchedule}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 };

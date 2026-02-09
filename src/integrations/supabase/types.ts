@@ -690,6 +690,7 @@ export type Database = {
           id: string
           is_manual: boolean | null
           scheduled_date: string
+          skipped_reason: string | null
           status: string
           updated_at: string | null
           vaccine_id: string
@@ -702,6 +703,7 @@ export type Database = {
           id?: string
           is_manual?: boolean | null
           scheduled_date: string
+          skipped_reason?: string | null
           status?: string
           updated_at?: string | null
           vaccine_id: string
@@ -714,6 +716,7 @@ export type Database = {
           id?: string
           is_manual?: boolean | null
           scheduled_date?: string
+          skipped_reason?: string | null
           status?: string
           updated_at?: string | null
           vaccine_id?: string

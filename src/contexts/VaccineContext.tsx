@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useBaby } from '@/contexts/BabyContext';
 import { useToast } from '@/hooks/use-toast';
-
+import { differenceInCalendarMonths, parseISO } from 'date-fns';
 export interface VaccineSchedule {
   id: string;
   baby_id: string;
@@ -10,6 +10,7 @@ export interface VaccineSchedule {
   dose_number: number;
   scheduled_date: string;
   status: 'pending' | 'upcoming' | 'overdue' | 'done' | 'skipped';
+  skipped_reason?: string | null;
   is_manual: boolean;
   created_at: string;
   updated_at: string;
@@ -61,8 +62,9 @@ interface VaccineContextType {
   // Actions
   refresh: () => Promise<void>;
   markAsDone: (scheduleId: string, data: MarkAsDoneInput) => Promise<{ success: boolean; error?: string }>;
-  markAsSkipped: (scheduleId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
+  markAsSkipped: (scheduleId: string, skippedReason?: string) => Promise<{ success: boolean; error?: string }>;
   undoMarkAsDone: (scheduleId: string) => Promise<{ success: boolean; error?: string }>;
+  undoSkipped: (scheduleId: string) => Promise<{ success: boolean; error?: string }>;
   
   // Timeline grouping
   getSchedulesByAgeMonth: () => Record<number, VaccineSchedule[]>;
@@ -192,62 +194,43 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       : 0,
   };
 
-  // Mark as done
+  // Mark as done via Edge Function (transactional)
   const markAsDone = async (
     scheduleId: string, 
     data: MarkAsDoneInput
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Insert vaccine history
-      const { data: historyData, error: historyError } = await supabase
-        .from('vaccine_history')
-        .insert({
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        return { success: false, error: 'Vui lòng đăng nhập lại' };
+      }
+
+      const response = await supabase.functions.invoke('mark-vaccine-done', {
+        body: {
           schedule_id: scheduleId,
           injected_date: data.injected_date,
-          batch_number: data.batch_number || null,
-          location: data.location || null,
-          notes: data.notes || null,
-        })
-        .select()
-        .single();
+          batch_number: data.batch_number,
+          location: data.location,
+          notes: data.notes,
+          image_urls: data.image_urls,
+        },
+      });
 
-      if (historyError) {
-        console.error('Error creating history:', historyError);
-        return { success: false, error: 'Không thể lưu thông tin tiêm chủng' };
+      if (response.error) {
+        console.error('Error in markAsDone:', response.error);
+        return { success: false, error: response.error.message || 'Không thể lưu thông tin tiêm chủng' };
       }
 
-      // Insert images if provided
-      if (data.image_urls && data.image_urls.length > 0) {
-        const imageInserts = data.image_urls.map(url => ({
-          history_id: historyData.id,
-          image_url: url,
-        }));
-        
-        const { error: imageError } = await supabase
-          .from('vaccine_history_images')
-          .insert(imageInserts);
-        
-        if (imageError) {
-          console.error('Error saving images:', imageError);
-        }
-      }
-
-      // Update schedule status
-      const { error: updateError } = await supabase
-        .from('vaccine_schedules')
-        .update({ status: 'done', updated_at: new Date().toISOString() })
-        .eq('id', scheduleId);
-
-      if (updateError) {
-        console.error('Error updating schedule:', updateError);
-        return { success: false, error: 'Không thể cập nhật trạng thái' };
+      const result = response.data;
+      if (!result.success) {
+        return { success: false, error: result.error || 'Không thể lưu thông tin tiêm chủng' };
       }
 
       // Optimistic update
       setSchedules(prev => 
         prev.map(s => 
           s.id === scheduleId 
-            ? { ...s, status: 'done' as const, vaccine_history: historyData }
+            ? { ...s, status: 'done' as const, vaccine_history: result.history }
             : s
         )
       );
@@ -264,16 +247,17 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Mark as skipped
+  // Mark as skipped with reason
   const markAsSkipped = async (
     scheduleId: string, 
-    reason?: string
+    skippedReason?: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase
         .from('vaccine_schedules')
         .update({ 
           status: 'skipped', 
+          skipped_reason: skippedReason || null,
           updated_at: new Date().toISOString() 
         })
         .eq('id', scheduleId);
@@ -287,7 +271,7 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setSchedules(prev => 
         prev.map(s => 
           s.id === scheduleId 
-            ? { ...s, status: 'skipped' as const }
+            ? { ...s, status: 'skipped' as const, skipped_reason: skippedReason || null }
             : s
         )
       );
@@ -332,7 +316,7 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return { success: false, error: 'Không thể xóa thông tin tiêm chủng' };
       }
 
-      // Recalculate status based on date
+      // Recalculate status based on date (7 days for upcoming)
       const today = new Date();
       const scheduledDate = new Date(schedule.scheduled_date);
       const daysDiff = Math.floor((scheduledDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -340,7 +324,7 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       let newStatus: 'pending' | 'upcoming' | 'overdue' = 'pending';
       if (daysDiff < 0) {
         newStatus = 'overdue';
-      } else if (daysDiff <= 14) {
+      } else if (daysDiff <= 7) {
         newStatus = 'upcoming';
       }
 
@@ -376,17 +360,72 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Group by age month
+  // Undo skipped status
+  const undoSkipped = async (
+    scheduleId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const schedule = schedules.find(s => s.id === scheduleId);
+      if (!schedule) {
+        return { success: false, error: 'Không tìm thấy thông tin' };
+      }
+
+      // Recalculate status based on date (7 days for upcoming)
+      const today = new Date();
+      const scheduledDate = new Date(schedule.scheduled_date);
+      const daysDiff = Math.floor((scheduledDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let newStatus: 'pending' | 'upcoming' | 'overdue' = 'pending';
+      if (daysDiff < 0) {
+        newStatus = 'overdue';
+      } else if (daysDiff <= 7) {
+        newStatus = 'upcoming';
+      }
+
+      const { error } = await supabase
+        .from('vaccine_schedules')
+        .update({ 
+          status: newStatus, 
+          skipped_reason: null,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', scheduleId);
+
+      if (error) {
+        console.error('Error undoing skipped:', error);
+        return { success: false, error: 'Không thể cập nhật trạng thái' };
+      }
+
+      // Optimistic update
+      setSchedules(prev => 
+        prev.map(s => 
+          s.id === scheduleId 
+            ? { ...s, status: newStatus, skipped_reason: null }
+            : s
+        )
+      );
+
+      toast({
+        title: 'Đã hoàn tác',
+        description: 'Mũi tiêm đã được khôi phục',
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in undoSkipped:', error);
+      return { success: false, error: 'Đã xảy ra lỗi' };
+    }
+  };
+
+  // Group by age month using differenceInCalendarMonths
   const getSchedulesByAgeMonth = useCallback(() => {
     if (!selectedBaby) return {};
     
-    const dob = new Date(selectedBaby.dob);
+    const dob = parseISO(selectedBaby.dob);
     
     return schedules.reduce((acc, schedule) => {
-      const scheduledDate = new Date(schedule.scheduled_date);
-      const ageMonths = Math.floor(
-        (scheduledDate.getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-      );
+      const scheduledDate = parseISO(schedule.scheduled_date);
+      const ageMonths = differenceInCalendarMonths(scheduledDate, dob);
       
       const monthKey = Math.max(0, ageMonths);
       
@@ -411,6 +450,7 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     markAsDone,
     markAsSkipped,
     undoMarkAsDone,
+    undoSkipped,
     getSchedulesByAgeMonth,
   };
 

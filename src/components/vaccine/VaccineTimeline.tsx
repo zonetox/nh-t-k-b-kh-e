@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import VaccineCard from './VaccineCard';
 import { cn } from '@/lib/utils';
-
+import { differenceInCalendarMonths, parseISO } from 'date-fns';
 interface VaccineTimelineProps {
   onSelectSchedule: (schedule: VaccineSchedule) => void;
 }
@@ -36,13 +36,10 @@ const VaccineTimeline: React.FC<VaccineTimelineProps> = ({ onSelectSchedule }) =
     .map(Number)
     .sort((a, b) => a - b);
 
-  // Calculate current age in months
-  const dob = new Date(selectedBaby.dob);
+  // Calculate current age in months using differenceInCalendarMonths
+  const dob = parseISO(selectedBaby.dob);
   const today = new Date();
-  const currentAgeMonths = Math.floor(
-    (today.getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-  );
-
+  const currentAgeMonths = differenceInCalendarMonths(today, dob);
   return (
     <Card>
       <CardHeader className="pb-3">

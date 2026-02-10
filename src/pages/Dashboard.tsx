@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw } from 'lucide-react';
 import BabySelector from '@/components/baby/BabySelector';
+import NotificationBell from '@/components/notification/NotificationBell';
 import AddBabyDialog from '@/components/baby/AddBabyDialog';
 import EmptyBabyState from '@/components/baby/EmptyBabyState';
 import UpcomingVaccinesPanel from '@/components/vaccine/UpcomingVaccinesPanel';
@@ -136,6 +137,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <Link to="/babies">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Settings className="h-4 w-4" />

@@ -212,6 +212,102 @@ export type Database = {
           },
         ]
       }
+      notification_failures: {
+        Row: {
+          error_message: string
+          failed_at: string | null
+          id: string
+          job_id: string
+        }
+        Insert: {
+          error_message: string
+          failed_at?: string | null
+          id?: string
+          job_id: string
+        }
+        Update: {
+          error_message?: string
+          failed_at?: string | null
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_failures_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "notification_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_jobs: {
+        Row: {
+          baby_id: string
+          channel: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          notify_type: string
+          retry_count: number
+          schedule_id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          baby_id: string
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notify_type: string
+          retry_count?: number
+          schedule_id: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          baby_id?: string
+          channel?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notify_type?: string
+          retry_count?: number
+          schedule_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_jobs_baby_id_fkey"
+            columns: ["baby_id"]
+            isOneToOne: false
+            referencedRelation: "babies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_jobs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "vaccine_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           body: string
@@ -278,6 +374,47 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          enable_email: boolean
+          enable_push: boolean
+          enable_zalo: boolean
+          quiet_end: string
+          quiet_start: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enable_email?: boolean
+          enable_push?: boolean
+          enable_zalo?: boolean
+          quiet_end?: string
+          quiet_start?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enable_email?: boolean
+          enable_push?: boolean
+          enable_zalo?: boolean
+          quiet_end?: string
+          quiet_start?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_templates: {
         Row: {
           body_template: string
@@ -307,6 +444,54 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          deep_link: string | null
+          id: string
+          job_id: string | null
+          read: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          deep_link?: string | null
+          id?: string
+          job_id?: string | null
+          read?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          deep_link?: string | null
+          id?: string
+          job_id?: string | null
+          read?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "notification_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_subscriptions: {
         Row: {
@@ -791,6 +976,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      generate_notification_jobs_for_schedule: {
+        Args: { p_schedule_id: string }
+        Returns: number
+      }
       generate_vaccine_schedules_for_baby: {
         Args: { p_baby_id: string }
         Returns: number

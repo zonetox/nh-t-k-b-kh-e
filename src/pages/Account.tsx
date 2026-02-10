@@ -28,6 +28,7 @@ import {
   EyeOff,
   CheckCircle
 } from 'lucide-react';
+import NotificationSettings from '@/components/notification/NotificationSettings';
 
 const Account: React.FC = () => {
   const { profile, updateProfile, changePassword, changePhone, logout, logoutAll } = useAuth();
@@ -203,6 +204,9 @@ const Account: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Notification Settings */}
+        <NotificationSettings />
 
         {/* Security Section */}
         <Card>

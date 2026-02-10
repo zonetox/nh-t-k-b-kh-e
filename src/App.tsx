@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BabyProvider } from "@/contexts/BabyContext";
 import { VaccineProvider } from "@/contexts/VaccineContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Pages
@@ -27,6 +28,7 @@ const App = () => (
         <AuthProvider>
           <BabyProvider>
             <VaccineProvider>
+              <NotificationProvider>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Dashboard />} />
@@ -54,6 +56,7 @@ const App = () => (
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </NotificationProvider>
             </VaccineProvider>
           </BabyProvider>
         </AuthProvider>

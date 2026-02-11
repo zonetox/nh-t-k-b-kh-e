@@ -619,6 +619,36 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_versions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          published_at: string | null
+          published_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          published_at?: string | null
+          published_by?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          published_at?: string | null
+          published_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           baby_id: string
@@ -746,8 +776,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vaccine_dose_rules: {
         Row: {
+          applied_from: string | null
           created_at: string | null
           dose_number: number
           id: string
@@ -759,8 +811,10 @@ export type Database = {
           recommended_age_days: number
           updated_at: string | null
           vaccine_id: string
+          version: number | null
         }
         Insert: {
+          applied_from?: string | null
           created_at?: string | null
           dose_number: number
           id?: string
@@ -772,8 +826,10 @@ export type Database = {
           recommended_age_days: number
           updated_at?: string | null
           vaccine_id: string
+          version?: number | null
         }
         Update: {
+          applied_from?: string | null
           created_at?: string | null
           dose_number?: number
           id?: string
@@ -785,6 +841,7 @@ export type Database = {
           recommended_age_days?: number
           updated_at?: string | null
           vaccine_id?: string
+          version?: number | null
         }
         Relationships: [
           {
@@ -932,10 +989,12 @@ export type Database = {
       }
       vaccines: {
         Row: {
+          code: string | null
           created_at: string | null
           description: string | null
           id: string
           is_active: boolean | null
+          is_mandatory: boolean | null
           name: string
           short_name: string | null
           total_doses: number
@@ -943,10 +1002,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_mandatory?: boolean | null
           name: string
           short_name?: string | null
           total_doses?: number
@@ -954,10 +1015,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_mandatory?: boolean | null
           name?: string
           short_name?: string | null
           total_doses?: number
@@ -984,6 +1047,24 @@ export type Database = {
         Args: { p_baby_id: string }
         Returns: number
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_any_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_new_values?: Json
+          p_old_values?: Json
+          p_record_id?: string
+          p_table_name: string
+        }
+        Returns: undefined
+      }
       record_login_attempt: {
         Args: { p_ip: unknown; p_phone: string; p_success: boolean }
         Returns: undefined
@@ -992,7 +1073,11 @@ export type Database = {
       update_vaccine_schedule_statuses: { Args: never; Returns: number }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "super_admin"
+        | "medical_admin"
+        | "finance_admin"
+        | "support_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1119,6 +1204,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "super_admin",
+        "medical_admin",
+        "finance_admin",
+        "support_admin",
+      ],
+    },
   },
 } as const

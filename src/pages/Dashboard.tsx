@@ -4,7 +4,8 @@ import { useBaby } from '@/contexts/BabyContext';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw } from 'lucide-react';
+import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw, Shield } from 'lucide-react';
+import { useAdmin } from '@/contexts/AdminContext';
 import BabySelector from '@/components/baby/BabySelector';
 import NotificationBell from '@/components/notification/NotificationBell';
 import AddBabyDialog from '@/components/baby/AddBabyDialog';
@@ -19,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const Dashboard: React.FC = () => {
   const { isAuthenticated, profile, logout } = useAuth();
   const { babies, selectedBaby, isLoading: babiesLoading } = useBaby();
+  const { isAdmin } = useAdmin();
   const { refresh, isLoading: vaccinesLoading } = useVaccine();
   const [addBabyOpen, setAddBabyOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<VaccineSchedule | null>(null);
@@ -137,6 +139,14 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Button>
+                </Link>
+              )}
               <NotificationBell />
               <Link to="/babies">
                 <Button variant="ghost" size="sm" className="gap-2">

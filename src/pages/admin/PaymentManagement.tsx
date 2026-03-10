@@ -87,11 +87,12 @@ const PaymentManagement: React.FC = () => {
     setRejectReason('');
     setAdminNotes(payment.admin_notes || '');
     setSignedImageUrl(null);
+    setImageLoaded(false);
     setReviewOpen(true);
 
-    // Get signed URL for proof image
     const url = await getSignedUrl(payment.proof_image_url);
     setSignedImageUrl(url);
+    setImageLoaded(true);
   };
 
   const checkRateLimit = async (): Promise<boolean> => {

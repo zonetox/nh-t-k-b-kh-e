@@ -76,9 +76,9 @@ const PaymentManagement: React.FC = () => {
         .from('payment-proofs')
         .createSignedUrl(match[1], 600); // 10 minutes
       if (error || !data?.signedUrl) return null;
+      return data.signedUrl;
     }
-    // Fallback for legacy URLs
-    return proofUrl;
+    return null;
   };
 
   const openReview = async (payment: Payment) => {

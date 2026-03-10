@@ -72,10 +72,10 @@ const PaymentManagement: React.FC = () => {
     // Extract storage path from the URL
     const match = proofUrl.match(/payment-proofs\/(.+)$/);
     if (match) {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('payment-proofs')
         .createSignedUrl(match[1], 600); // 10 minutes
-      return data?.signedUrl || proofUrl;
+      if (error || !data?.signedUrl) return null;
     }
     // Fallback for legacy URLs
     return proofUrl;

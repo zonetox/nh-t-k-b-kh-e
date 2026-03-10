@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Users, Baby, Syringe, CreditCard, Loader2 } from 'lucide-react';
 
 interface Stats {
@@ -12,6 +13,7 @@ interface Stats {
 }
 
 const AdminDashboard: React.FC = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +23,7 @@ const AdminDashboard: React.FC = () => {
         const [usersRes, babiesRes, vaccinesRes, paymentsRes] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('babies').select('id', { count: 'exact', head: true }),
-          supabase.from('vaccines').select('id', { count: 'exact', head: true }),
+          supabase.from('vaccines').select('id', { count: 'exact', head: true }).is('deleted_at', null),
           supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         ]);
 
@@ -38,8 +40,16 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
+    // Log admin panel access
+    if (user) {
+      supabase.rpc('log_admin_action', {
+        p_action: 'admin_access_panel',
+        p_table_name: 'admin',
+      }).then(() => {});
+    }
+
     fetchStats();
-  }, []);
+  }, [user]);
 
   const statCards = [
     { label: 'Người dùng', value: stats?.totalUsers || 0, icon: Users, color: 'text-blue-500' },

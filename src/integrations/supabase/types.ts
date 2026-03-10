@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_action_limits: {
+        Row: {
+          action_count: number
+          action_minute: string
+          admin_id: string
+          id: string
+        }
+        Insert: {
+          action_count?: number
+          action_minute?: string
+          admin_id: string
+          id?: string
+        }
+        Update: {
+          action_count?: number
+          action_minute?: string
+          admin_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -991,6 +1012,7 @@ export type Database = {
         Row: {
           code: string | null
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -1004,6 +1026,7 @@ export type Database = {
         Insert: {
           code?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -1017,6 +1040,7 @@ export type Database = {
         Update: {
           code?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -1034,6 +1058,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_payment_transaction: {
+        Args: {
+          p_admin_id: string
+          p_admin_notes?: string
+          p_payment_id: string
+        }
+        Returns: undefined
+      }
+      check_admin_rate_limit: { Args: { p_admin_id: string }; Returns: boolean }
       check_login_rate_limit: {
         Args: { p_ip: unknown; p_phone: string }
         Returns: Json
@@ -1070,6 +1103,10 @@ export type Database = {
         Returns: undefined
       }
       revoke_all_user_sessions: { Args: { p_user_id: string }; Returns: number }
+      soft_delete_vaccine: {
+        Args: { p_admin_id: string; p_vaccine_id: string }
+        Returns: undefined
+      }
       update_vaccine_schedule_statuses: { Args: never; Returns: number }
     }
     Enums: {

@@ -47,6 +47,7 @@ const PaymentManagement: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -56,12 +57,10 @@ const PaymentManagement: React.FC = () => {
       .order('created_at', { ascending: false });
 
     if (data) {
-      // Fetch user phones
       const userIds = [...new Set(data.map(p => p.user_id))];
       const { data: profiles } = await supabase.from('profiles').select('id, phone').in('id', userIds);
       const phoneMap: Record<string, string> = {};
       profiles?.forEach(p => { phoneMap[p.id] = p.phone; });
-
       setPayments(data.map(p => ({ ...p, user_phone: phoneMap[p.user_id] || '—' })) as Payment[]);
     }
     setLoading(false);
@@ -69,48 +68,54 @@ const PaymentManagement: React.FC = () => {
 
   useEffect(() => { fetchPayments(); }, []);
 
-  const openReview = (payment: Payment) => {
+  const getSignedUrl = async (proofUrl: string): Promise<string | null> => {
+    // Extract storage path from the URL
+    const match = proofUrl.match(/payment-proofs\/(.+)$/);
+    if (match) {
+      const { data } = await supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(match[1], 600); // 10 minutes
+      return data?.signedUrl || proofUrl;
+    }
+    // Fallback for legacy URLs
+    return proofUrl;
+  };
+
+  const openReview = async (payment: Payment) => {
     setSelectedPayment(payment);
     setRejectReason('');
     setAdminNotes(payment.admin_notes || '');
+    setSignedImageUrl(null);
     setReviewOpen(true);
+
+    // Get signed URL for proof image
+    const url = await getSignedUrl(payment.proof_image_url);
+    setSignedImageUrl(url);
+  };
+
+  const checkRateLimit = async (): Promise<boolean> => {
+    if (!user) return false;
+    const { data, error } = await supabase.rpc('check_admin_rate_limit', { p_admin_id: user.id });
+    if (error || data === false) {
+      toast({ title: 'Quá giới hạn', description: 'Tối đa 30 hành động/phút. Vui lòng chờ.', variant: 'destructive' });
+      return false;
+    }
+    return true;
   };
 
   const handleApprove = async () => {
     if (!selectedPayment || !user) return;
+    if (!(await checkRateLimit())) return;
     setProcessing(true);
 
     try {
-      const { error } = await supabase.from('payments').update({
-        status: 'approved',
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: user.id,
-        admin_notes: adminNotes.trim() || null,
-      }).eq('id', selectedPayment.id);
+      const { error } = await supabase.rpc('approve_payment_transaction', {
+        p_payment_id: selectedPayment.id,
+        p_admin_id: user.id,
+        p_admin_notes: adminNotes.trim() || null,
+      });
 
       if (error) throw error;
-
-      // Create subscriptions for each baby
-      for (const babyId of selectedPayment.baby_ids) {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
-        await supabase.from('subscriptions').insert({
-          user_id: selectedPayment.user_id,
-          baby_id: babyId,
-          type: 'annual',
-          status: 'active',
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
-        });
-      }
-
-      await supabase.rpc('log_admin_action', {
-        p_action: 'approve_payment', p_table_name: 'payments', p_record_id: selectedPayment.id,
-        p_old_values: JSON.stringify({ status: selectedPayment.status }),
-        p_new_values: JSON.stringify({ status: 'approved' }),
-      });
 
       toast({ title: 'Đã duyệt thanh toán và kích hoạt gói' });
       setReviewOpen(false);
@@ -124,6 +129,7 @@ const PaymentManagement: React.FC = () => {
 
   const handleReject = async () => {
     if (!selectedPayment || !user || !rejectReason.trim()) return;
+    if (!(await checkRateLimit())) return;
     setProcessing(true);
 
     try {
@@ -241,7 +247,13 @@ const PaymentManagement: React.FC = () => {
               <div>
                 <Label className="text-xs text-muted-foreground">Ảnh chuyển khoản</Label>
                 <div className="mt-1 border rounded-lg overflow-hidden">
-                  <img src={selectedPayment.proof_image_url} alt="Proof" className="w-full max-h-64 object-contain bg-muted" />
+                  {signedImageUrl ? (
+                    <img src={signedImageUrl} alt="Proof" className="w-full max-h-64 object-contain bg-muted" />
+                  ) : (
+                    <div className="flex items-center justify-center h-32 bg-muted">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">

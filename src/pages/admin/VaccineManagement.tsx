@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +13,14 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Loader2, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 
 interface Vaccine {
   id: string;
@@ -27,6 +32,7 @@ interface Vaccine {
   total_doses: number;
   is_mandatory: boolean;
   is_active: boolean;
+  deleted_at: string | null;
 }
 
 interface DoseRule {
@@ -45,12 +51,12 @@ interface DoseRule {
 
 const VaccineManagement: React.FC = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [doseRules, setDoseRules] = useState<DoseRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedVaccine, setExpandedVaccine] = useState<string | null>(null);
 
-  // Vaccine dialog
   const [vaccineDialogOpen, setVaccineDialogOpen] = useState(false);
   const [editingVaccine, setEditingVaccine] = useState<Vaccine | null>(null);
   const [vaccineForm, setVaccineForm] = useState({
@@ -59,7 +65,6 @@ const VaccineManagement: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Dose rule dialog
   const [doseDialogOpen, setDoseDialogOpen] = useState(false);
   const [editingDose, setEditingDose] = useState<DoseRule | null>(null);
   const [doseForm, setDoseForm] = useState({
@@ -67,10 +72,14 @@ const VaccineManagement: React.FC = () => {
     recommended_age_days: 0, min_interval_days: '', notes: '',
   });
 
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Vaccine | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fetchData = async () => {
     setLoading(true);
     const [vRes, dRes] = await Promise.all([
-      supabase.from('vaccines').select('*').order('name'),
+      supabase.from('vaccines').select('*').is('deleted_at', null).order('name'),
       supabase.from('vaccine_dose_rules').select('*').order('vaccine_id, dose_number'),
     ]);
     if (vRes.data) setVaccines(vRes.data as Vaccine[]);
@@ -79,6 +88,16 @@ const VaccineManagement: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const checkRateLimit = async (): Promise<boolean> => {
+    if (!user) return false;
+    const { data, error } = await supabase.rpc('check_admin_rate_limit', { p_admin_id: user.id });
+    if (error || data === false) {
+      toast({ title: 'Quá giới hạn', description: 'Tối đa 30 hành động/phút.', variant: 'destructive' });
+      return false;
+    }
+    return true;
+  };
 
   const openAddVaccine = () => {
     setEditingVaccine(null);
@@ -100,6 +119,7 @@ const VaccineManagement: React.FC = () => {
   };
 
   const saveVaccine = async () => {
+    if (!(await checkRateLimit())) return;
     setSaving(true);
     try {
       const payload = {
@@ -116,7 +136,6 @@ const VaccineManagement: React.FC = () => {
       if (editingVaccine) {
         const { error } = await supabase.from('vaccines').update(payload).eq('id', editingVaccine.id);
         if (error) throw error;
-        // Log audit
         await supabase.rpc('log_admin_action', {
           p_action: 'update_vaccine', p_table_name: 'vaccines', p_record_id: editingVaccine.id,
           p_old_values: JSON.stringify(editingVaccine), p_new_values: JSON.stringify(payload),
@@ -136,8 +155,28 @@ const VaccineManagement: React.FC = () => {
     }
   };
 
+  const handleSoftDelete = async () => {
+    if (!deleteTarget || !user) return;
+    if (!(await checkRateLimit())) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.rpc('soft_delete_vaccine', {
+        p_vaccine_id: deleteTarget.id,
+        p_admin_id: user.id,
+      });
+      if (error) throw error;
+      toast({ title: 'Đã xoá vắc-xin (soft delete)' });
+      setDeleteTarget(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'Lỗi', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openAddDose = (vaccineId: string) => {
-    const existingDoses = doseRules.filter(d => d.vaccine_id === vaccineId);
+    const existingDoses = doseRules.filter(d => d.vaccine_id === vaccineId && d.is_active);
     setEditingDose(null);
     setDoseForm({
       vaccine_id: vaccineId, dose_number: existingDoses.length + 1,
@@ -158,7 +197,26 @@ const VaccineManagement: React.FC = () => {
     setDoseDialogOpen(true);
   };
 
+  const validateDoseForm = (): string | null => {
+    const { min_age_days, recommended_age_days, max_age_days } = doseForm;
+    const maxAge = max_age_days ? parseInt(max_age_days) : null;
+
+    if (min_age_days > recommended_age_days) {
+      return 'Tuổi tối thiểu phải ≤ tuổi đề xuất';
+    }
+    if (maxAge !== null && maxAge < recommended_age_days) {
+      return 'Tuổi tối đa phải ≥ tuổi đề xuất';
+    }
+    return null;
+  };
+
   const saveDoseRule = async () => {
+    const validationError = validateDoseForm();
+    if (validationError) {
+      toast({ title: 'Dữ liệu không hợp lệ', description: validationError, variant: 'destructive' });
+      return;
+    }
+    if (!(await checkRateLimit())) return;
     setSaving(true);
     try {
       const payload = {
@@ -173,7 +231,6 @@ const VaccineManagement: React.FC = () => {
       };
 
       if (editingDose) {
-        // Versioning: deactivate old, create new
         await supabase.from('vaccine_dose_rules').update({ is_active: false }).eq('id', editingDose.id);
         const { error } = await supabase.from('vaccine_dose_rules').insert({
           ...payload,
@@ -234,7 +291,7 @@ const VaccineManagement: React.FC = () => {
                     <TableHead>Loại</TableHead>
                     <TableHead>Số liều</TableHead>
                     <TableHead>Trạng thái</TableHead>
-                    <TableHead className="w-20"></TableHead>
+                    <TableHead className="w-28"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -264,9 +321,14 @@ const VaccineManagement: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditVaccine(v); }}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditVaccine(v); }}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteTarget(v); }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                         {isExpanded && (
@@ -434,6 +496,25 @@ const VaccineManagement: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Soft Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá vắc-xin "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vắc-xin sẽ được ẩn (soft delete). Nếu có lịch tiêm đang hoạt động, hệ thống sẽ từ chối xoá.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Huỷ</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSoftDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Xoá
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };

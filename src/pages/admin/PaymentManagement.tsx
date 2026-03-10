@@ -48,6 +48,7 @@ const PaymentManagement: React.FC = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -72,13 +73,13 @@ const PaymentManagement: React.FC = () => {
     // Extract storage path from the URL
     const match = proofUrl.match(/payment-proofs\/(.+)$/);
     if (match) {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('payment-proofs')
         .createSignedUrl(match[1], 600); // 10 minutes
-      return data?.signedUrl || proofUrl;
+      if (error || !data?.signedUrl) return null;
+      return data.signedUrl;
     }
-    // Fallback for legacy URLs
-    return proofUrl;
+    return null;
   };
 
   const openReview = async (payment: Payment) => {
@@ -86,11 +87,12 @@ const PaymentManagement: React.FC = () => {
     setRejectReason('');
     setAdminNotes(payment.admin_notes || '');
     setSignedImageUrl(null);
+    setImageLoaded(false);
     setReviewOpen(true);
 
-    // Get signed URL for proof image
     const url = await getSignedUrl(payment.proof_image_url);
     setSignedImageUrl(url);
+    setImageLoaded(true);
   };
 
   const checkRateLimit = async (): Promise<boolean> => {
@@ -249,6 +251,10 @@ const PaymentManagement: React.FC = () => {
                 <div className="mt-1 border rounded-lg overflow-hidden">
                   {signedImageUrl ? (
                     <img src={signedImageUrl} alt="Proof" className="w-full max-h-64 object-contain bg-muted" />
+                  ) : imageLoaded ? (
+                    <div className="flex items-center justify-center h-32 bg-destructive/10">
+                      <p className="text-sm text-destructive">Không thể tải ảnh chuyển khoản.</p>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-32 bg-muted">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

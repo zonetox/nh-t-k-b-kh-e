@@ -48,6 +48,7 @@ const PaymentManagement: React.FC = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const fetchPayments = async () => {
     setLoading(true);

@@ -251,6 +251,10 @@ const PaymentManagement: React.FC = () => {
                 <div className="mt-1 border rounded-lg overflow-hidden">
                   {signedImageUrl ? (
                     <img src={signedImageUrl} alt="Proof" className="w-full max-h-64 object-contain bg-muted" />
+                  ) : imageLoaded ? (
+                    <div className="flex items-center justify-center h-32 bg-destructive/10">
+                      <p className="text-sm text-destructive">Không thể tải ảnh chuyển khoản.</p>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-32 bg-muted">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

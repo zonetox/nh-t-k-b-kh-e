@@ -88,31 +88,27 @@ const Analytics: React.FC = () => {
       let csvContent = '';
       let filename = '';
 
-      if (type === 'users') {
-        const { data } = await supabase.from('profiles').select('id, phone, display_name, is_active, created_at, last_login_at');
-        if (!data?.length) throw new Error('Không có dữ liệu');
-        csvContent = 'ID,SĐT,Tên,Trạng thái,Ngày tạo,Đăng nhập cuối\n' +
-          data.map(r => `${r.id},${r.phone},${r.display_name || ''},${r.is_active ? 'Active' : 'Inactive'},${r.created_at},${r.last_login_at || ''}`).join('\n');
-        filename = 'users.csv';
-      } else if (type === 'babies') {
-        const { data } = await supabase.from('babies').select('id, name, dob, gender, created_at').is('deleted_at', null);
-        if (!data?.length) throw new Error('Không có dữ liệu');
-        csvContent = 'ID,Tên,Ngày sinh,Giới tính,Ngày tạo\n' +
-          data.map(r => `${r.id},${r.name},${r.dob},${r.gender || ''},${r.created_at}`).join('\n');
-        filename = 'babies.csv';
-      } else if (type === 'vaccinations') {
-        const { data } = await supabase.from('vaccine_schedules').select('id, baby_id, vaccine_id, dose_number, scheduled_date, status');
-        if (!data?.length) throw new Error('Không có dữ liệu');
-        csvContent = 'ID,Baby ID,Vaccine ID,Liều,Ngày hẹn,Trạng thái\n' +
-          data.map(r => `${r.id},${r.baby_id},${r.vaccine_id},${r.dose_number},${r.scheduled_date},${r.status}`).join('\n');
-        filename = 'vaccinations.csv';
-      } else if (type === 'payments') {
-        const { data } = await supabase.from('payments').select('id, user_id, amount, status, created_at, reviewed_at');
-        if (!data?.length) throw new Error('Không có dữ liệu');
-        csvContent = 'ID,User ID,Số tiền,Trạng thái,Ngày tạo,Ngày duyệt\n' +
-          data.map(r => `${r.id},${r.user_id},${r.amount},${r.status},${r.created_at},${r.reviewed_at || ''}`).join('\n');
-        filename = 'payments.csv';
-      }
+      const rpcMap = {
+        users: 'export_users',
+        babies: 'export_babies',
+        vaccinations: 'export_vaccinations',
+        payments: 'export_payments',
+      } as const;
+
+      const headerMap = {
+        users: 'ID,SĐT,Tên,Trạng thái,Ngày tạo,Đăng nhập cuối',
+        babies: 'ID,Tên,Ngày sinh,Giới tính,Ngày tạo',
+        vaccinations: 'ID,Baby ID,Vaccine ID,Liều,Ngày hẹn,Trạng thái',
+        payments: 'ID,User ID,Số tiền,Trạng thái,Ngày tạo,Ngày duyệt',
+      };
+
+      const { data, error } = await supabase.rpc(rpcMap[type]);
+      if (error) throw new Error(error.message);
+      if (!data?.length) throw new Error('Không có dữ liệu');
+
+      const rows = (data as Record<string, any>[]).map(r => Object.values(r).map(v => v ?? '').join(','));
+      csvContent = headerMap[type] + '\n' + rows.join('\n');
+      filename = `${type}.csv`;
 
       const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);

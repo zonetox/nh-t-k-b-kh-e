@@ -25,6 +25,7 @@ import VaccineManagement from "./pages/admin/VaccineManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentManagement from "./pages/admin/PaymentManagement";
 import AuditLogs from "./pages/admin/AuditLogs";
+import Analytics from "./pages/admin/Analytics";
 
 const queryClient = new QueryClient();
 

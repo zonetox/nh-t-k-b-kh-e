@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Shield,
   LogOut,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Shield,
   LogOut,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, description 
 
   const navItems = [
     { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard, show: true },
+    { path: '/admin/analytics', label: 'Phân tích hệ thống', icon: BarChart3, show: true },
     { path: '/admin/vaccines', label: 'Cấu hình vắc-xin', icon: Syringe, show: isMedicalAdmin },
     { path: '/admin/users', label: 'Quản lý người dùng', icon: Users, show: isSupportAdmin },
     { path: '/admin/payments', label: 'Quản lý thanh toán', icon: CreditCard, show: isFinanceAdmin },

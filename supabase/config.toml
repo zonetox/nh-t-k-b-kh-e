@@ -2,3 +2,6 @@ project_id = "qirrmgwacdofboxdmzwg"
 
 [functions.notification-cron]
 verify_jwt = false
+
+[functions.daily-metrics]
+verify_jwt = false

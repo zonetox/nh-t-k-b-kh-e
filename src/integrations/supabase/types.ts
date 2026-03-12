@@ -395,6 +395,36 @@ export type Database = {
           },
         ]
       }
+      notification_metrics: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          jobs_created: number
+          jobs_failed: number
+          jobs_retried: number
+          jobs_sent: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          jobs_created?: number
+          jobs_failed?: number
+          jobs_retried?: number
+          jobs_sent?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          jobs_created?: number
+          jobs_failed?: number
+          jobs_retried?: number
+          jobs_sent?: number
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string | null
@@ -759,6 +789,86 @@ export type Database = {
           },
         ]
       }
+      system_errors: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_type: string
+          id: string
+          metadata: Json | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_type: string
+          id?: string
+          metadata?: Json | null
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_type?: string
+          id?: string
+          metadata?: Json | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_errors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_metrics_daily: {
+        Row: {
+          completed_vaccines: number
+          created_at: string
+          id: string
+          metric_date: string
+          overdue_vaccines: number
+          pending_vaccines: number
+          total_babies: number
+          total_payments: number
+          total_revenue: number
+          total_users: number
+          total_vaccine_schedules: number
+        }
+        Insert: {
+          completed_vaccines?: number
+          created_at?: string
+          id?: string
+          metric_date: string
+          overdue_vaccines?: number
+          pending_vaccines?: number
+          total_babies?: number
+          total_payments?: number
+          total_revenue?: number
+          total_users?: number
+          total_vaccine_schedules?: number
+        }
+        Update: {
+          completed_vaccines?: number
+          created_at?: string
+          id?: string
+          metric_date?: string
+          overdue_vaccines?: number
+          pending_vaccines?: number
+          total_babies?: number
+          total_payments?: number
+          total_revenue?: number
+          total_users?: number
+          total_vaccine_schedules?: number
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           created_at: string | null
@@ -1058,6 +1168,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aggregate_daily_metrics: { Args: never; Returns: undefined }
       approve_payment_transaction: {
         Args: {
           p_admin_id: string

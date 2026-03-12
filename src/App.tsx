@@ -25,6 +25,7 @@ import VaccineManagement from "./pages/admin/VaccineManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentManagement from "./pages/admin/PaymentManagement";
 import AuditLogs from "./pages/admin/AuditLogs";
+import Analytics from "./pages/admin/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
 
                   {/* Admin routes */}
                   <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                  <Route path="/admin/analytics" element={<AdminRoute><Analytics /></AdminRoute>} />
                   <Route path="/admin/vaccines" element={<AdminRoute requiredRoles={['medical_admin']}><VaccineManagement /></AdminRoute>} />
                   <Route path="/admin/users" element={<AdminRoute requiredRoles={['support_admin']}><UserManagement /></AdminRoute>} />
                   <Route path="/admin/payments" element={<AdminRoute requiredRoles={['finance_admin']}><PaymentManagement /></AdminRoute>} />

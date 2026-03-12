@@ -1183,6 +1183,49 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      export_babies: {
+        Args: never
+        Returns: {
+          created_at: string
+          dob: string
+          gender: string
+          id: string
+          name: string
+        }[]
+      }
+      export_payments: {
+        Args: never
+        Returns: {
+          amount: number
+          created_at: string
+          id: string
+          reviewed_at: string
+          status: string
+          user_id: string
+        }[]
+      }
+      export_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          last_login_at: string
+          phone: string
+        }[]
+      }
+      export_vaccinations: {
+        Args: never
+        Returns: {
+          baby_id: string
+          dose_number: number
+          id: string
+          scheduled_date: string
+          status: string
+          vaccine_id: string
+        }[]
+      }
       generate_notification_jobs_for_schedule: {
         Args: { p_schedule_id: string }
         Returns: number
@@ -1197,6 +1240,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      insert_system_error: {
+        Args: {
+          p_error_message: string
+          p_error_type: string
+          p_metadata?: Json
+          p_source: string
+          p_user_id?: string
+        }
+        Returns: undefined
       }
       is_any_admin: { Args: { _user_id: string }; Returns: boolean }
       log_admin_action: {

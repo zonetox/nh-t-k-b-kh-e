@@ -1267,6 +1267,7 @@ export type Database = {
         Args: { p_ip: unknown; p_phone: string; p_success: boolean }
         Returns: undefined
       }
+      restore_backup: { Args: { p_file_name: string }; Returns: Json }
       revoke_all_user_sessions: { Args: { p_user_id: string }; Returns: number }
       soft_delete_vaccine: {
         Args: { p_admin_id: string; p_vaccine_id: string }

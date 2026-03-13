@@ -1178,6 +1178,7 @@ export type Database = {
         Returns: undefined
       }
       check_admin_rate_limit: { Args: { p_admin_id: string }; Returns: boolean }
+      check_data_integrity: { Args: never; Returns: Json }
       check_login_rate_limit: {
         Args: { p_ip: unknown; p_phone: string }
         Returns: Json

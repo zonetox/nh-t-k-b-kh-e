@@ -85,9 +85,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Verify schedule ownership
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const { data: schedule, error: scheduleError } = await supabaseAdmin
+      .from("vaccine_schedules")
+      .select("id, babies!inner(user_id)")
+      .eq("id", scheduleId)
+      .single();
+
+    if (scheduleError || !schedule || (schedule.babies as any).user_id !== user.id) {
+      return new Response(JSON.stringify({ error: "Forbidden: schedule does not belong to you" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Upload using service role (user folder path for RLS)
     const filePath = `${user.id}/${scheduleId}${ext}`;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = supabaseAdmin;
 
     const { data, error } = await supabase.storage
       .from("vaccination-certificates")

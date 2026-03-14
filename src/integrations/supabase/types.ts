@@ -1061,6 +1061,7 @@ export type Database = {
           dose_number: number
           generated_from_rule_id: string | null
           id: string
+          is_catchup: boolean | null
           is_manual: boolean | null
           scheduled_date: string
           skipped_reason: string | null
@@ -1074,6 +1075,7 @@ export type Database = {
           dose_number: number
           generated_from_rule_id?: string | null
           id?: string
+          is_catchup?: boolean | null
           is_manual?: boolean | null
           scheduled_date: string
           skipped_reason?: string | null
@@ -1087,6 +1089,7 @@ export type Database = {
           dose_number?: number
           generated_from_rule_id?: string | null
           id?: string
+          is_catchup?: boolean | null
           is_manual?: boolean | null
           scheduled_date?: string
           skipped_reason?: string | null
@@ -1165,7 +1168,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      baby_vaccine_status: {
+        Row: {
+          baby_id: string | null
+          completed: number | null
+          next_due_date: string | null
+          overdue: number | null
+          pending: number | null
+          skipped: number | null
+          total_vaccines: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccine_schedules_baby_id_fkey"
+            columns: ["baby_id"]
+            isOneToOne: false
+            referencedRelation: "babies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       aggregate_daily_metrics: { Args: never; Returns: undefined }
@@ -1235,6 +1257,32 @@ export type Database = {
         Args: { p_baby_id: string }
         Returns: number
       }
+      get_next_vaccine: {
+        Args: { p_baby_id: string }
+        Returns: {
+          days_until_due: number
+          dose_number: number
+          is_overdue: boolean
+          overdue_days: number
+          schedule_id: string
+          scheduled_date: string
+          vaccine_code: string
+          vaccine_name: string
+        }[]
+      }
+      get_upcoming_vaccines: {
+        Args: { p_baby_id: string; p_days_ahead?: number }
+        Returns: {
+          days_until_due: number
+          dose_number: number
+          is_overdue: boolean
+          schedule_id: string
+          scheduled_date: string
+          status: string
+          vaccine_code: string
+          vaccine_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1262,6 +1310,10 @@ export type Database = {
           p_table_name: string
         }
         Returns: undefined
+      }
+      recalculate_future_doses: {
+        Args: { p_schedule_id: string }
+        Returns: number
       }
       record_login_attempt: {
         Args: { p_ip: unknown; p_phone: string; p_success: boolean }

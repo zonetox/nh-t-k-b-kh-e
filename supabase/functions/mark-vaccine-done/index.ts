@@ -149,10 +149,16 @@ Deno.serve(async (req) => {
       throw updateError;
     }
 
+    // Step 4: Recalculate future doses (catch-up logic)
+    const { data: recalcData } = await supabase.rpc("recalculate_future_doses", {
+      p_schedule_id: schedule_id,
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         history: historyData,
+        doses_recalculated: recalcData || 0,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

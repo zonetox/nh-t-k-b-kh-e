@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
 
     // Upload using service role (user folder path for RLS)
     const filePath = `${user.id}/${scheduleId}${ext}`;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = supabaseAdmin;
 
     const { data, error } = await supabase.storage
       .from("vaccination-certificates")

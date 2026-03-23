@@ -1,0 +1,13 @@
+project_id = "qirrmgwacdofboxdmzwg"
+
+[functions.notification-cron]
+verify_jwt = false
+
+[functions.daily-metrics]
+verify_jwt = false
+
+[functions.daily-backup]
+verify_jwt = false
+
+[functions.upload-certificate]
+verify_jwt = false

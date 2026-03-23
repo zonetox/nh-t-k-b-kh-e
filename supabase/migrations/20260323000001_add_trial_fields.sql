@@ -1,23 +1,34 @@
 -- Migration: add_trial_fields
 -- Description: Thêm trường dùng thử và thành viên vào bảng profiles
 
--- 1. Thêm cột mới
+-- 1. Cập nhật độ dài cột phone và thêm các trường dùng thử
 ALTER TABLE public.profiles 
+ALTER COLUMN phone TYPE VARCHAR(100),
 ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
 ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT FALSE;
 
--- 2. Cập nhật hàm handle_new_user để đảm bảo mọi user mới đều có 30 ngày dùng thử
+-- 2. Cập nhật hàm handle_new_user để xử lý phone từ email giả lập hoặc metadata
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_phone TEXT;
 BEGIN
+    -- Ưu tiên lấy phone từ metadata, sau đó đến top-level phone, cuối cùng là xử lý từ email
+    v_phone := COALESCE(
+        (NEW.raw_user_meta_data->>'phone'),
+        NEW.phone,
+        SPLIT_PART(NEW.email, '@', 1) -- Lấy phần trước @ nếu là email giả lập
+    );
+
     INSERT INTO public.profiles (id, phone, trial_ends_at, is_premium)
     VALUES (
         NEW.id, 
-        COALESCE(NEW.phone, NEW.email),
+        v_phone,
         (NOW() + INTERVAL '30 days'),
         FALSE
     )
     ON CONFLICT (id) DO UPDATE SET
+        phone = EXCLUDED.phone,
         trial_ends_at = EXCLUDED.trial_ends_at,
         is_premium = EXCLUDED.is_premium;
     RETURN NEW;
@@ -25,6 +36,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Cập nhật RLS (nơi cho phép admin sửa profile user)
+DROP POLICY IF EXISTS "Admins can update premium status" ON public.profiles;
 CREATE POLICY "Admins can update premium status" ON public.profiles
     FOR UPDATE 
     USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (is_admin = TRUE OR has_role(auth.uid(), 'super_admin'))))

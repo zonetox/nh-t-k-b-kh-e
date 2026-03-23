@@ -125,6 +125,9 @@ const AddBabyDialog: React.FC<AddBabyDialogProps> = ({ open, onOpenChange }) => 
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 pb-0 text-xs font-medium text-center text-muted-foreground">
+                  Nhấp vào Tháng/Năm để chọn nhanh
+                </div>
                 <Calendar
                   mode="single"
                   selected={dob}

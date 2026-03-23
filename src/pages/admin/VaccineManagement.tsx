@@ -60,7 +60,7 @@ const VaccineManagement: React.FC = () => {
   const [vaccineDialogOpen, setVaccineDialogOpen] = useState(false);
   const [editingVaccine, setEditingVaccine] = useState<Vaccine | null>(null);
   const [vaccineForm, setVaccineForm] = useState({
-    name: '', short_name: '', code: '', type: 'tiem_chung_mo_rong',
+    name: '', short_name: '', code: '', type: 'standard',
     description: '', total_doses: 1, is_mandatory: false, is_active: true,
   });
   const [saving, setSaving] = useState(false);
@@ -102,7 +102,7 @@ const VaccineManagement: React.FC = () => {
   const openAddVaccine = () => {
     setEditingVaccine(null);
     setVaccineForm({
-      name: '', short_name: '', code: '', type: 'tiem_chung_mo_rong',
+      name: '', short_name: '', code: '', type: 'standard',
       description: '', total_doses: 1, is_mandatory: false, is_active: true,
     });
     setVaccineDialogOpen(true);
@@ -311,7 +311,7 @@ const VaccineManagement: React.FC = () => {
                           <TableCell className="text-muted-foreground">{v.code || v.short_name || '—'}</TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {v.type === 'tiem_chung_mo_rong' ? 'TCMR' : v.type === 'dich_vu' ? 'Dịch vụ' : v.type}
+                              {v.type === 'standard' ? 'TCMR' : v.type === 'optional' ? 'Dịch vụ' : v.type}
                             </Badge>
                           </TableCell>
                           <TableCell>{v.total_doses}</TableCell>
@@ -421,8 +421,8 @@ const VaccineManagement: React.FC = () => {
               <Label>Loại</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={vaccineForm.type} onChange={e => setVaccineForm(p => ({ ...p, type: e.target.value }))}>
-                <option value="tiem_chung_mo_rong">Tiêm chủng mở rộng</option>
-                <option value="dich_vu">Dịch vụ</option>
+                <option value="standard">Tiêm chủng mở rộng</option>
+                <option value="optional">Dịch vụ</option>
               </select>
             </div>
             <div className="space-y-2">

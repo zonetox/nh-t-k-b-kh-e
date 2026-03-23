@@ -113,32 +113,63 @@ const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule 
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="w-[40%]">Vaccine</TableHead>
-                      <TableHead className="w-[20%]">Liều</TableHead>
-                      <TableHead className="w-[25%]">Ngày</TableHead>
-                      <TableHead className="w-[15%]">Trạng thái</TableHead>
+                      <TableHead className="w-[30%]">Vaccine</TableHead>
+                      <TableHead className="w-[15%]">Loại</TableHead>
+                      <TableHead className="w-[10%]">Liều</TableHead>
+                      <TableHead className="w-[15%]">Ngày dự kiến</TableHead>
+                      <TableHead className="w-[15%]">Ngày thực tế</TableHead>
+                      <TableHead className="w-[15%] text-right">Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSchedules.map((schedule) => (
                       <TableRow 
                         key={schedule.id}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className={cn(
+                          "cursor-pointer hover:bg-muted/50 transition-colors",
+                          schedule.status === 'skipped' && "opacity-60"
+                        )}
                         onClick={() => onSelectSchedule(schedule)}
                       >
                         <TableCell className="font-medium">
-                          {schedule.vaccines?.short_name || schedule.vaccines?.name}
+                          <div className="flex flex-col">
+                            <span className={cn(schedule.status === 'skipped' && "line-through")}>
+                              {schedule.vaccines?.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                              {schedule.vaccines?.short_name}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          {schedule.dose_number}
+                          <Badge variant="outline" className={cn(
+                            "text-[10px] px-1.5 h-5 border-none",
+                            schedule.vaccines?.type === 'optional' 
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" 
+                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          )}>
+                            {schedule.vaccines?.type === 'optional' ? 'Dịch vụ' : 'Mở rộng'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">{schedule.dose_number}</span>
                           {schedule.vaccines?.total_doses && schedule.vaccines.total_doses > 1 && (
-                            <span className="text-muted-foreground text-xs"> / {schedule.vaccines.total_doses}</span>
+                            <span className="text-muted-foreground text-xs">/{schedule.vaccines.total_doses}</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm font-medium">
                           {format(parseISO(schedule.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
+                          {schedule.status === 'done' && schedule.vaccine_history?.[0] ? (
+                            <span className="text-success font-bold">
+                              {format(parseISO(schedule.vaccine_history[0].injected_date), 'dd/MM/yyyy', { locale: vi })}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Chưa tiêm</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
                           {renderStatusBadge(schedule.status)}
                         </TableCell>
                       </TableRow>

@@ -116,13 +116,23 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
               </div>
               
               <div className="flex-1">
-                <h3 className="font-semibold text-lg">
-                  {schedule.vaccines?.name}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Liều {schedule.dose_number}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-xl">
+                    {schedule.vaccines?.name}
+                  </h3>
+                  <Badge variant="outline" className={cn(
+                    "text-[10px] uppercase font-bold border-none",
+                    schedule.vaccines?.type === 'optional' 
+                      ? "bg-purple-600 text-white" 
+                      : "bg-blue-600 text-white"
+                  )}>
+                    {schedule.vaccines?.type === 'optional' ? 'Tiêm chủng dịch vụ' : 'Tiêm chủng mở rộng'}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1 font-medium">
+                  Mũi tiêm thứ {schedule.dose_number}
                   {schedule.vaccines?.total_doses && schedule.vaccines.total_doses > 1 && (
-                    <span> / {schedule.vaccines.total_doses}</span>
+                    <span> / Tổng {schedule.vaccines.total_doses} mũi</span>
                   )}
                 </p>
                 <Badge className={cn("mt-2", config.className)}>
@@ -163,12 +173,15 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
 
             {/* Vaccine description */}
             {schedule.vaccines?.description && (
-              <div className="bg-primary/5 rounded-lg p-4">
+              <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
                 <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    {schedule.vaccines.description}
-                  </p>
+                  <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-primary uppercase tracking-wider">Thông tin mũi tiêm</p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {schedule.vaccines.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

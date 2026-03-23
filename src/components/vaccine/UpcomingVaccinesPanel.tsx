@@ -30,16 +30,29 @@ const ScheduleItem: React.FC<{ schedule: VaccineSchedule; onClick: () => void }>
     </div>
     
     <div className="flex-1 min-w-0">
-      <h4 className="font-medium truncate">
-        {schedule.vaccines?.short_name || schedule.vaccines?.name}
-      </h4>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <h4 className="font-bold truncate">
+          {schedule.vaccines?.name}
+        </h4>
+        <Badge variant="outline" className={cn(
+          "text-[8px] px-1 h-3.5 uppercase font-bold border-none",
+          schedule.vaccines?.type === 'optional' 
+            ? "bg-purple-600 text-white" 
+            : "bg-blue-600 text-white"
+        )}>
+          {schedule.vaccines?.type === 'optional' ? 'Dịch vụ' : 'Mở rộng'}
+        </Badge>
+      </div>
+      <p className="text-[10px] text-muted-foreground uppercase font-bold mb-0.5">
+        {schedule.vaccines?.short_name} • Liều {schedule.dose_number}
+      </p>
       <p className="text-xs text-muted-foreground">
         {schedule.status === 'overdue' ? (
-          <span className="text-overdue font-medium">
+          <span className="text-overdue font-bold">
             Quá hạn {formatDistanceToNow(parseISO(schedule.scheduled_date), { locale: vi, addSuffix: false })}
           </span>
         ) : (
-          <span className="text-warning">
+          <span className="text-warning font-medium">
             {format(parseISO(schedule.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
             {' • '}
             {formatDistanceToNow(parseISO(schedule.scheduled_date), { locale: vi, addSuffix: true })}

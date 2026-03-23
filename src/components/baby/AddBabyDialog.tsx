@@ -109,39 +109,26 @@ const AddBabyDialog: React.FC<AddBabyDialogProps> = ({ open, onOpenChange }) => 
           </div>
 
           <div className="space-y-2">
-            <Label>Ngày sinh</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !dob && 'text-muted-foreground'
-                  )}
-                  disabled={isLoading}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dob ? format(dob, 'dd/MM/yyyy', { locale: vi }) : 'Chọn ngày sinh'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <div className="p-3 pb-0 text-xs font-medium text-center text-muted-foreground">
-                  Nhấp vào Tháng/Năm để chọn nhanh
-                </div>
-                <Calendar
-                  mode="single"
-                  selected={dob}
-                  onSelect={setDob}
-                  disabled={(date) => date > new Date()}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  locale={vi}
-                  captionLayout="dropdown-buttons"
-                  fromYear={2010}
-                  toYear={new Date().getFullYear()}
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="dob">Ngày sinh</Label>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="dob"
+                type="date"
+                className="pl-10 block w-full"
+                value={dob ? format(dob, 'yyyy-MM-dd') : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDob(val ? new Date(val) : undefined);
+                }}
+                max={format(new Date(), 'yyyy-MM-dd')}
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Nhấp vào biểu tượng để chọn Năm/Tháng nhanh hơn
+            </p>
           </div>
 
           <div className="space-y-2">

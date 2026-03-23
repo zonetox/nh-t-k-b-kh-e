@@ -167,6 +167,9 @@ export const BabyProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSelectedBaby(baby);
       localStorage.setItem(SELECTED_BABY_KEY, baby.id);
 
+      // Refresh babies list to update local state
+      await fetchBabies();
+
       toast({
         title: 'Thêm bé thành công!',
         description: `Đã tạo hồ sơ cho bé ${baby.name} và lịch tiêm chủng chuẩn`,

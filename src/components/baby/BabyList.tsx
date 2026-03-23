@@ -138,26 +138,26 @@ const BabyList: React.FC = () => {
                         Sinh ngày: {format(parseISO(baby.dob), 'dd/MM/yyyy', { locale: vi })}
                       </p>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(baby); }}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Sửa thông tin
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(baby); }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Xóa hồ sơ
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex flex-col gap-1 items-end" onClick={(e) => e.stopPropagation()}>
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         className="h-8 px-2 text-xs flex items-center gap-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
+                         onClick={() => handleEdit(baby)}
+                       >
+                         <Pencil className="h-3.5 w-3.5" />
+                         <span>Chỉnh sửa</span>
+                       </Button>
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         className="h-8 px-2 text-xs flex items-center gap-1.5 text-destructive hover:bg-destructive/10 transition-colors"
+                         onClick={() => handleDelete(baby)}
+                       >
+                         <Trash2 className="h-3.5 w-3.5" />
+                         <span>Xóa</span>
+                       </Button>
+                    </div>
                   </div>
                 </div>
               ))}

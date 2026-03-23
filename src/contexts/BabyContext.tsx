@@ -23,6 +23,7 @@ interface CreateBabyInput {
 interface UpdateBabyInput {
   name?: string;
   gender?: 'male' | 'female';
+  avatar_url?: string;
 }
 
 interface BabyContextType {
@@ -36,6 +37,7 @@ interface BabyContextType {
   updateBaby: (babyId: string, data: UpdateBabyInput) => Promise<{ success: boolean; error?: string }>;
   deleteBaby: (babyId: string) => Promise<{ success: boolean; error?: string }>;
   refreshBabies: () => Promise<void>;
+  uploadAvatar: (babyId: string, file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
 }
 
 const BabyContext = createContext<BabyContextType | undefined>(undefined);
@@ -199,6 +201,7 @@ export const BabyProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data.name) updateData.name = data.name.trim();
       if (data.gender) updateData.gender = data.gender;
+      if (data.avatar_url) updateData.avatar_url = data.avatar_url;
 
       const { error } = await supabase
         .from('babies')
@@ -270,6 +273,41 @@ export const BabyProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Upload Avatar
+  const uploadAvatar = async (babyId: string, file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+    if (!user) return { success: false, error: 'Chưa đăng nhập' };
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${babyId}_${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload avatar error:', uploadError);
+        return { success: false, error: 'Không thể tải ảnh lên' };
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update baby record
+      await updateBaby(babyId, { avatar_url: publicUrl });
+
+      return { success: true, url: publicUrl };
+    } catch (error) {
+      console.error('Upload avatar error:', error);
+      return { success: false, error: 'Không thể tải ảnh lên' };
+    }
+  };
+
   // Refresh
   const refreshBabies = async () => {
     await fetchBabies();
@@ -284,6 +322,7 @@ export const BabyProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateBaby,
     deleteBaby,
     refreshBabies,
+    uploadAvatar,
   };
 
   return <BabyContext.Provider value={value}>{children}</BabyContext.Provider>;

@@ -134,7 +134,7 @@ const AddBabyDialog: React.FC<AddBabyDialogProps> = ({ open, onOpenChange }) => 
                   className={cn("p-3 pointer-events-auto")}
                   locale={vi}
                   captionLayout="dropdown-buttons"
-                  fromYear={2015}
+                  fromYear={2010}
                   toYear={new Date().getFullYear()}
                 />
               </PopoverContent>

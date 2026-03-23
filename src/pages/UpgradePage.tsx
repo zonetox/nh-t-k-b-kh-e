@@ -3,11 +3,87 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, ArrowLeft, CreditCard, ShieldCheck, Zap } from 'lucide-react';
+import { Check, ArrowLeft, CreditCard, ShieldCheck, Zap, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
 const UpgradePage: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  
+  const [file, setFile] = React.useState<File | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [isSuccess, setIsSuccess] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const qrUrl = React.useMemo(() => {
+    const bankId = 'tcb';
+    const accountNo = '19028231554011';
+    const amount = '99000';
+    const addInfo = encodeURIComponent(`VITE ${profile?.phone || ''}`);
+    const accountName = encodeURIComponent('LE TAN LOI');
+    return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`;
+  }, [profile?.phone]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    if (!profile) return;
+    
+    setIsUploading(true);
+    try {
+      let proofUrl = '';
+
+      // 1. Upload proof if exists
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('receipts')
+          .upload(fileName, file);
+
+        if (uploadError) throw new Error('Không thể tải ảnh minh chứng lên');
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(fileName);
+        
+        proofUrl = publicUrl;
+      }
+
+      // 2. Call RPC to auto-upgrade
+      const { error: rpcError } = await supabase.rpc('request_auto_upgrade' as any, {
+        p_amount: 99000,
+        p_proof_url: proofUrl,
+        p_baby_ids: [] // Can be extended to specific babies if needed
+      });
+
+      if (rpcError) throw rpcError;
+
+      setIsSuccess(true);
+      await refreshProfile();
+      
+      toast({
+        title: 'Nâng cấp thành công!',
+        description: 'Tài khoản của bạn đã được chuyển sang chế độ Premium ngay lập tức.',
+      });
+    } catch (error: any) {
+      console.error('Upgrade error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi nâng cấp',
+        description: error.message || 'Có lỗi xảy ra, vui lòng thử lại sau.',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted p-4 md:p-8">
@@ -74,23 +150,75 @@ const UpgradePage: React.FC = () => {
               <div className="pt-6 border-t space-y-4">
                 <div className="flex items-center gap-3 text-sm font-medium">
                   <CreditCard className="h-4 w-4" />
-                  <span>Thông tin chuyển khoản</span>
+                  <span>Thông tin chuyển khoản & Quét mã QR</span>
                 </div>
-                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm font-mono">
-                  <p>Ngân hàng: **MB BANK (Quân Đội)**</p>
-                  <p>Số TK: **0918731411**</p>
-                  <p>Chủ TK: **PHAN THANH LOI**</p>
-                  <p>Nội dung: **VITE {profile?.phone}**</p>
+                
+                <div className="flex flex-col items-center gap-4 bg-white p-4 rounded-xl border border-dashed border-primary/30">
+                  <img 
+                    src={qrUrl} 
+                    alt="VietQR Payment" 
+                    className="w-full max-w-[240px] aspect-square object-contain"
+                  />
+                  <div className="text-center space-y-1">
+                    <p className="font-bold text-primary">LE TAN LOI</p>
+                    <p className="font-mono text-sm leading-none">1902 8231 5540 11</p>
+                    <p className="text-xs text-muted-foreground">Techcombank (Ngân hàng Kỹ thương)</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center italic">
-                  * Sau khi chuyển khoản, Admin sẽ phê duyệt tài khoản của bạn trong vòng 15-30 phút.
+
+                <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Xác nhận chuyển khoản</p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
+                  
+                  {file ? (
+                    <div className="flex items-center gap-2 p-2 bg-background rounded border text-sm">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      <span className="flex-1 truncate">{file.name}</span>
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setFile(null)}>Xóa</Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-dashed border-2 h-16 flex flex-col gap-1"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-5 w-5 opacity-50" />
+                      <span className="text-xs">Tải lên ảnh chụp màn hình chuyển khoản (nếu có)</span>
+                    </Button>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Nội dung:</span>
+                    <span className="font-bold text-primary px-2 py-0.5 bg-primary/10 rounded">VITE {profile?.phone}</span>
+                  </div>
+                </div>
+                
+                <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                  * Hệ thống sẽ <strong>tự động kích hoạt Premium</strong> ngay khi bạn nhấn nút phía dưới. 
+                  Chúng tôi sẽ kiểm tra đối soát thông tin chuyển khoản sau đó.
                 </p>
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full h-12 text-lg font-semibold gap-2">
-                <Zap className="h-5 w-5 fill-current" />
-                ĐÃ CHUYỂN KHOẢN
+              <Button 
+                onClick={handleUpgrade} 
+                disabled={isUploading || isSuccess}
+                className={cn("w-full h-12 text-lg font-semibold gap-2", isSuccess && "bg-green-600 hover:bg-green-700")}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isSuccess ? (
+                  <Check className="h-5 w-5" />
+                ) : (
+                  <Zap className="h-5 w-5 fill-current" />
+                )}
+                {isSuccess ? 'ĐÃ KÍCH HOẠT THÀNH CÔNG' : 'XÁC NHẬN ĐÃ CHUYỂN KHOẢN'}
               </Button>
             </CardFooter>
           </Card>

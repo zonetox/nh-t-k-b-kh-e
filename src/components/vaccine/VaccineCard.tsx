@@ -93,7 +93,7 @@ const VaccineCard: React.FC<VaccineCardProps> = React.memo(({
               "text-sm font-medium truncate",
               schedule.status === 'skipped' && "line-through"
             )}>
-              {schedule.vaccines?.short_name || schedule.vaccines?.name}
+              {schedule.vaccines?.name || schedule.vaccines?.short_name}
             </p>
             <span className={cn(
               "text-[10px] px-1 rounded-sm font-semibold uppercase tracking-tighter",

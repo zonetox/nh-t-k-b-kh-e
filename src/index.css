@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap');
+
 /* 
   Nhật Ký Tiêm Chủng - Design System
   Theme: Medical/Healthcare - Trustworthy, Clean, Friendly
@@ -10,35 +12,35 @@
 
 @layer base {
   :root {
-    /* Background - Soft warm white */
-    --background: 210 40% 99%;
-    --foreground: 215 25% 15%;
+    /* Background - Soft warm white (F0FDFA) */
+    --background: 165 40% 97%;
+    --foreground: 176 61% 19%;
 
     /* Cards - Pure white with subtle depth */
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 176 61% 19%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 176 61% 19%;
 
-    /* Primary - Teal/Medical blue - trustworthy, calm */
-    --primary: 174 62% 42%;
+    /* Primary - Teal/Medical blue (#0891B2) */
+    --primary: 192 91% 36%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft gray-blue */
-    --secondary: 210 30% 96%;
-    --secondary-foreground: 215 25% 25%;
+    /* Secondary - Soft light teal (#22D3EE) */
+    --secondary: 188 86% 53%;
+    --secondary-foreground: 176 61% 19%;
 
     /* Muted - For disabled, placeholder */
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 15% 50%;
+    --muted: 165 20% 95%;
+    --muted-foreground: 176 25% 45%;
 
-    /* Accent - Warm orange for CTAs and highlights */
-    --accent: 30 95% 55%;
+    /* Accent/CTA - Health Green (#22C55E) */
+    --accent: 142 71% 45%;
     --accent-foreground: 0 0% 100%;
 
     /* Destructive - Soft red */
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* Success - For completed vaccinations */
@@ -50,25 +52,25 @@
     --warning-foreground: 0 0% 100%;
 
     /* Overdue - For missed vaccinations */
-    --overdue: 0 72% 51%;
+    --overdue: 0 84% 60%;
     --overdue-foreground: 0 0% 100%;
 
     /* Border and inputs */
-    --border: 214 25% 88%;
-    --input: 214 25% 88%;
-    --ring: 174 62% 42%;
+    --border: 176 20% 88%;
+    --input: 176 20% 88%;
+    --ring: 192 91% 36%;
 
     --radius: 0.75rem;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 215 25% 25%;
-    --sidebar-primary: 174 62% 42%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 176 61% 19%;
+    --sidebar-primary: 192 91% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 30% 96%;
-    --sidebar-accent-foreground: 215 25% 25%;
-    --sidebar-border: 214 25% 90%;
-    --sidebar-ring: 174 62% 42%;
+    --sidebar-accent: 165 40% 97%;
+    --sidebar-accent-foreground: 176 61% 19%;
+    --sidebar-border: 176 20% 90%;
+    --sidebar-ring: 192 91% 36%;
   }
 
   .dark {
@@ -128,7 +130,12 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Noto Sans', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Figtree', sans-serif;
   }
 }
 

@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Clock, Calendar, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Clock, Calendar, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -68,11 +68,19 @@ ScheduleItem.displayName = 'ScheduleItem';
 
 const UpcomingVaccinesPanel: React.FC<UpcomingVaccinesPanelProps> = React.memo(({ onSelectSchedule }) => {
   const { upcomingSchedules, overdueSchedules, isLoading } = useVaccine();
+  const [showAll, setShowAll] = useState(false);
 
-  const urgentSchedules = useMemo(
-    () => [...overdueSchedules, ...upcomingSchedules].slice(0, 5),
+  const allUrgentSchedules = useMemo(
+    () => [...overdueSchedules, ...upcomingSchedules],
     [overdueSchedules, upcomingSchedules]
   );
+
+  const urgentSchedules = useMemo(
+    () => showAll ? allUrgentSchedules : allUrgentSchedules.slice(0, 5),
+    [allUrgentSchedules, showAll]
+  );
+
+  const remaining = allUrgentSchedules.length - 5;
 
   if (isLoading) {
     return (
@@ -123,7 +131,7 @@ const UpcomingVaccinesPanel: React.FC<UpcomingVaccinesPanelProps> = React.memo((
             </>
           )}
           <Badge variant="secondary" className="ml-auto">
-            {urgentSchedules.length} mũi
+            {allUrgentSchedules.length} mũi
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -136,10 +144,17 @@ const UpcomingVaccinesPanel: React.FC<UpcomingVaccinesPanelProps> = React.memo((
           />
         ))}
         
-        {(overdueSchedules.length > 5 || upcomingSchedules.length > 5) && (
-          <p className="text-xs text-center text-muted-foreground pt-2">
-            Và {overdueSchedules.length + upcomingSchedules.length - 5} mũi tiêm khác
-          </p>
+        {remaining > 0 && (
+          <button
+            onClick={() => setShowAll(prev => !prev)}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground pt-2 pb-1 transition-colors"
+          >
+            {showAll ? (
+              <><ChevronUp className="h-4 w-4" /> Thu gọn</>
+            ) : (
+              <><ChevronDown className="h-4 w-4" /> Xem thêm {remaining} mũi khác</>
+            )}
+          </button>
         )}
       </CardContent>
     </Card>

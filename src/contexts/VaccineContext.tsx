@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBaby } from '@/contexts/BabyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { differenceInCalendarMonths, parseISO } from 'date-fns';
+import { differenceInCalendarMonths, differenceInCalendarDays, parseISO } from 'date-fns';
 
 export interface VaccineSchedule {
   id: string;
@@ -141,7 +141,26 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      setSchedules((data || []) as unknown as VaccineSchedule[]);
+      const today = new Date();
+      const computedData = (data || []).map((schedule: any) => {
+        if (['pending', 'upcoming', 'overdue'].includes(schedule.status)) {
+          const scheduledDate = parseISO(schedule.scheduled_date);
+          const daysDiff = differenceInCalendarDays(scheduledDate, today);
+          
+          let computedStatus = schedule.status;
+          if (daysDiff < 0) {
+            computedStatus = 'overdue';
+          } else if (daysDiff <= 7) {
+            computedStatus = 'upcoming';
+          } else {
+            computedStatus = 'pending';
+          }
+          return { ...schedule, status: computedStatus };
+        }
+        return schedule;
+      });
+
+      setSchedules(computedData as unknown as VaccineSchedule[]);
     } catch (error) {
       console.error('Error in fetchSchedules:', error);
     } finally {
@@ -372,8 +391,8 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Recalculate status based on date (7 days for upcoming)
       const today = new Date();
-      const scheduledDate = new Date(schedule.scheduled_date);
-      const daysDiff = Math.floor((scheduledDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const scheduledDate = parseISO(schedule.scheduled_date);
+      const daysDiff = differenceInCalendarDays(scheduledDate, today);
       
       let newStatus: 'pending' | 'upcoming' | 'overdue' = 'pending';
       if (daysDiff < 0) {

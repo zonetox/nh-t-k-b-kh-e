@@ -12,6 +12,7 @@ interface VaccineCardProps {
   onClick?: () => void;
   showActions?: boolean;
   compact?: boolean;
+  sequentialNumber?: number;
 }
 
 const statusConfig = {
@@ -56,7 +57,8 @@ const VaccineCard: React.FC<VaccineCardProps> = React.memo(({
   schedule, 
   onClick, 
   showActions = true,
-  compact = false 
+  compact = false,
+  sequentialNumber,
 }) => {
   const config = statusConfig[schedule.status] || statusConfig.pending;
   const StatusIcon = config.icon;
@@ -83,7 +85,7 @@ const VaccineCard: React.FC<VaccineCardProps> = React.memo(({
           {schedule.status === 'done' ? (
             <Check className="h-3.5 w-3.5" />
           ) : (
-            schedule.dose_number
+            sequentialNumber ?? schedule.dose_number
           )}
         </div>
         

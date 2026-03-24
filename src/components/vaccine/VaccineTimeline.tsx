@@ -67,11 +67,12 @@ const MonthGroup: React.FC<MonthGroupProps> = React.memo(({ month, schedules, cu
       </div>
 
       <div className="space-y-2">
-        {schedules.map((schedule) => (
+        {schedules.map((schedule, idx) => (
           <VaccineCard
             key={schedule.id}
             schedule={schedule}
             compact
+            sequentialNumber={idx + 1}
             onClick={() => onSelectSchedule(schedule)}
           />
         ))}

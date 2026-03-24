@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBaby } from '@/contexts/BabyContext';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
@@ -26,10 +26,23 @@ const Dashboard: React.FC = () => {
   const [addBabyOpen, setAddBabyOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<VaccineSchedule | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [mainTab, setMainTab] = useState('timeline');
+  const [listFilter, setListFilter] = useState('all');
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   const handleSelectSchedule = useCallback((schedule: VaccineSchedule) => {
     setSelectedSchedule(schedule);
     setDetailOpen(true);
+  }, []);
+
+  const handleStatClick = useCallback((filter: string) => {
+    setMainTab('list');
+    setListFilter(filter);
+    
+    // Smooth scroll to the tabs section
+    setTimeout(() => {
+      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   }, []);
 
   if (!isAuthenticated) {
@@ -243,14 +256,14 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Stats */}
-            <VaccineStats />
+            <VaccineStats onStatClick={handleStatClick} />
 
             {/* Urgent vaccines panel */}
             <UpcomingVaccinesPanel onSelectSchedule={handleSelectSchedule} />
 
             {/* Main content tabs */}
-            <div className="relative">
-              <Tabs defaultValue="timeline" className="space-y-4">
+            <div className="relative" ref={tabsRef}>
+              <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="list">Danh sách</TabsTrigger>
@@ -261,7 +274,10 @@ const Dashboard: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="list">
-                  <FullScheduleTable onSelectSchedule={handleSelectSchedule} />
+                  <FullScheduleTable 
+                    onSelectSchedule={handleSelectSchedule} 
+                    externalTab={listFilter}
+                  />
                 </TabsContent>
               </Tabs>
 

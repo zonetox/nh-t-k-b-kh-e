@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import AddOptionalVaccineDialog from './AddOptionalVaccineDialog';
 
 interface FullScheduleTableProps {
   onSelectSchedule: (schedule: VaccineSchedule) => void;
+  externalTab?: string;
 }
 
 const statusConfig = {
@@ -30,10 +31,15 @@ const statusConfig = {
   skipped: { icon: SkipForward, label: 'Bỏ qua', className: 'text-muted-foreground bg-muted/50' },
 };
 
-const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule }) => {
+const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule, externalTab }) => {
   const { schedules, isLoading, upcomingSchedules, overdueSchedules, doneSchedules, pendingSchedules } = useVaccine();
   const [activeTab, setActiveTab] = useState('all');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  // Sync external tab when stat card is clicked
+  useEffect(() => {
+    if (externalTab) setActiveTab(externalTab);
+  }, [externalTab]);
 
   if (isLoading) {
     return (

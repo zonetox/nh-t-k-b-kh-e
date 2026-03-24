@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBaby } from '@/contexts/BabyContext';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
@@ -22,16 +22,22 @@ const Dashboard: React.FC = () => {
   const { isAuthenticated, profile, logout, isTrialActive, isPremium, trialDaysRemaining } = useAuth();
   const { babies, selectedBaby, isLoading: babiesLoading } = useBaby();
   const { isAdmin } = useAdmin();
-  const { refresh, isLoading: vaccinesLoading } = useVaccine();
   const [addBabyOpen, setAddBabyOpen] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<VaccineSchedule | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [mainTab, setMainTab] = useState('timeline');
   const [listFilter, setListFilter] = useState('all');
   const tabsRef = useRef<HTMLDivElement>(null);
 
+  const { schedules, refresh, isLoading: vaccinesLoading } = useVaccine();
+
+  const selectedSchedule = useMemo(() => {
+    if (!selectedScheduleId) return null;
+    return schedules.find(s => s.id === selectedScheduleId) || null;
+  }, [selectedScheduleId, schedules]);
+
   const handleSelectSchedule = useCallback((schedule: VaccineSchedule) => {
-    setSelectedSchedule(schedule);
+    setSelectedScheduleId(schedule.id);
     setDetailOpen(true);
   }, []);
 

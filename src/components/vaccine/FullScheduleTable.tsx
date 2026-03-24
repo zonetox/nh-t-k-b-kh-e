@@ -133,8 +133,8 @@ const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule,
                       <TableHead className="w-[30%]">Vaccine</TableHead>
                       <TableHead className="w-[15%]">Loại</TableHead>
                       <TableHead className="w-[10%]">Liều</TableHead>
-                      <TableHead className="w-[15%]">Ngày dự kiến</TableHead>
-                      <TableHead className="w-[15%]">Ngày thực tế</TableHead>
+                      <TableHead className="w-[15%]">Ngày dự kiến (theo ngày sinh)</TableHead>
+                      <TableHead className="w-[15%]">Ngày tiêm thực tế</TableHead>
                       <TableHead className="w-[15%] text-right">Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>

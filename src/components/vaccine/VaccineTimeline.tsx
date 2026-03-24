@@ -51,7 +51,7 @@ const MonthGroup: React.FC<MonthGroupProps> = React.memo(({ month, schedules, cu
 
       <div className="flex items-center gap-2 mb-3">
         <span className={cn("font-semibold", isCurrent && "text-primary")}>
-          {month === 0 ? 'Sơ sinh' : `${month} tháng`}
+          {month === 0 ? 'Sơ sinh' : `Tháng thứ ${month}`}
         </span>
         <Badge
           variant={allDone ? 'success' : hasOverdue ? 'destructive' : 'secondary'}
@@ -116,7 +116,7 @@ const VaccineTimeline: React.FC<VaccineTimelineProps> = React.memo(({ onSelectSc
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Lịch tiêm theo tháng tuổi</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Bé hiện tại: {currentAgeMonths} tháng tuổi
+          Bé hiện tại: tháng thứ {currentAgeMonths}
         </p>
       </CardHeader>
       <CardContent className="p-0">

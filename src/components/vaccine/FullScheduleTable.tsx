@@ -178,9 +178,12 @@ const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule,
                           {format(parseISO(schedule.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {schedule.status === 'done' && schedule.vaccine_history?.[0] ? (
+                          {schedule.status === 'done' ? (
                             <span className="text-success font-bold">
-                              {format(parseISO(schedule.vaccine_history[0].injected_date), 'dd/MM/yyyy', { locale: vi })}
+                              {schedule.vaccine_history?.[0] 
+                                ? format(parseISO(schedule.vaccine_history[0].injected_date), 'dd/MM/yyyy', { locale: vi })
+                                : format(parseISO(schedule.scheduled_date), 'dd/MM/yyyy', { locale: vi })
+                              }
                             </span>
                           ) : (
                             <span className="text-muted-foreground italic text-xs">Chưa tiêm</span>

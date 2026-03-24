@@ -222,7 +222,16 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
           </div>
 
           <DialogFooter>
-            {schedule.status === 'done' || schedule.status === 'skipped' ? (
+            {schedule.status === 'done' ? (
+              <div className="flex w-full sm:w-auto gap-2 justify-end">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Đóng
+                </Button>
+                <Button onClick={handleMarkAsDone}>
+                  Xem chi tiết / Hoàn tác
+                </Button>
+              </div>
+            ) : schedule.status === 'skipped' ? (
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Đóng
               </Button>

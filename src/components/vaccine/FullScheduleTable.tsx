@@ -12,10 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Check, Clock, AlertTriangle, Calendar, SkipForward, Filter } from 'lucide-react';
+import { Check, Clock, AlertTriangle, Calendar, SkipForward, Filter, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import AddOptionalVaccineDialog from './AddOptionalVaccineDialog';
 
 interface FullScheduleTableProps {
   onSelectSchedule: (schedule: VaccineSchedule) => void;
@@ -32,6 +33,7 @@ const statusConfig = {
 const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule }) => {
   const { schedules, isLoading, upcomingSchedules, overdueSchedules, doneSchedules, pendingSchedules } = useVaccine();
   const [activeTab, setActiveTab] = useState('all');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -76,8 +78,17 @@ const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule 
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
-          <span className="text-lg">Danh sách đầy đủ</span>
-          <Badge variant="secondary">{schedules.length} mũi</Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">Danh sách đầy đủ</span>
+            <Badge variant="secondary">{schedules.length} mũi</Badge>
+          </div>
+          <Button size="sm" onClick={() => setAddDialogOpen(true)} className="hidden sm:flex" variant="outline">
+            <Plus className="h-4 w-4 mr-1" />
+            Thêm mũi tiêm
+          </Button>
+          <Button size="icon" onClick={() => setAddDialogOpen(true)} className="sm:hidden" variant="outline">
+            <Plus className="h-4 w-4" />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -181,6 +192,7 @@ const FullScheduleTable: React.FC<FullScheduleTableProps> = ({ onSelectSchedule 
           </TabsContent>
         </Tabs>
       </CardContent>
+      <AddOptionalVaccineDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </Card>
   );
 };

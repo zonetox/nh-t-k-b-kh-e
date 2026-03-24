@@ -88,13 +88,12 @@ const MarkAsDoneDialog: React.FC<MarkAsDoneDialogProps> = ({
     const imageUrls: string[] = [];
     
     for (const file of selectedFiles) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('schedule_id', scheduleId);
-
-      const { data, error } = await supabase.functions.invoke('upload-certificate', {
-        body: formData,
-      });
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${scheduleId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('vaccination-certificates')
+        .upload(fileName, file);
 
       if (error) {
         console.error('Lỗi upload ảnh:', error);

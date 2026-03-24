@@ -37,6 +37,12 @@ export interface VaccineSchedule {
   }[] | null;
 }
 
+export interface AddManualScheduleInput {
+  vaccine_id: string;
+  scheduled_date: string;
+  dose_number: number;
+}
+
 export interface MarkAsDoneInput {
   injected_date: string;
   batch_number?: string;
@@ -71,6 +77,7 @@ interface VaccineContextType {
   markAsSkipped: (scheduleId: string, skippedReason?: string) => Promise<{ success: boolean; error?: string }>;
   undoMarkAsDone: (scheduleId: string) => Promise<{ success: boolean; error?: string }>;
   undoSkipped: (scheduleId: string) => Promise<{ success: boolean; error?: string }>;
+  addManualSchedule: (data: AddManualScheduleInput) => Promise<{ success: boolean; error?: string }>;
   
   // Timeline grouping
   getSchedulesByAgeMonth: () => Record<number, VaccineSchedule[]>;
@@ -176,6 +183,41 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       : 0,
   };
 
+  const addManualSchedule = async (data: AddManualScheduleInput): Promise<{ success: boolean; error?: string }> => {
+    if (!selectedBaby) return { success: false, error: 'Chưa chọn bé' };
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('vaccine_schedules')
+        .insert({
+          baby_id: selectedBaby.id,
+          vaccine_id: data.vaccine_id,
+          scheduled_date: data.scheduled_date,
+          dose_number: data.dose_number,
+          status: 'pending',
+          is_manual: true,
+        });
+
+      if (error) {
+        console.error('Error adding manual schedule:', error);
+        return { success: false, error: 'Không thể thêm mũi tiêm' };
+      }
+
+      await fetchSchedules(true);
+      toast({
+        title: 'Thành công',
+        description: 'Đã thêm mũi tiêm vào lịch',
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error:', error);
+      return { success: false, error: 'Đã xảy ra lỗi' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Mark as done via Edge Function (transactional)
   const markAsDone = async (
     scheduleId: string, 
@@ -193,36 +235,37 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
+      const { data: sessionData } = await supabase.auth.getUser();
+      const userId = sessionData.user?.id;
+      if (!userId) {
         return { success: false, error: 'Vui lòng đăng nhập lại' };
       }
 
-      const response = await supabase.functions.invoke('mark-vaccine-done', {
-        body: {
-          schedule_id: scheduleId,
-          injected_date: data.injected_date,
-          batch_number: data.batch_number,
-          location: data.location,
-          notes: data.notes,
-          image_urls: data.image_urls,
-        },
+      // @ts-ignore - The generated types might not have this RPC yet
+      const { data: rpcData, error: rpcError } = await supabase.rpc('mark_vaccine_done_atomic', {
+        p_schedule_id: scheduleId,
+        p_user_id: userId,
+        p_injected_date: data.injected_date,
+        p_batch_number: data.batch_number || null,
+        p_location: data.location || null,
+        p_notes: data.notes || null,
+        p_image_paths: data.image_urls?.length ? data.image_urls : [],
       });
 
-      if (response.error) {
-        console.error('Error in markAsDone:', response.error);
-        return { success: false, error: response.error.message || 'Không thể lưu thông tin tiêm chủng' };
+      if (rpcError) {
+        console.error('Error in markAsDone:', rpcError);
+        return { success: false, error: rpcError.message || 'Không thể lưu thông tin tiêm chủng (Database conflict)' };
       }
 
-      const result = response.data;
-      if (!result.success) {
-        return { success: false, error: result.error || 'Không thể lưu thông tin tiêm chủng' };
+      const result = rpcData as any;
+      if (!result || !result.id) {
+        return { success: false, error: 'Thất bại khi cập nhật dữ liệu' };
       }
       // Optimistic update using array format [history]
       setSchedules(prev => 
         prev.map(s => 
           s.id === scheduleId 
-            ? { ...s, status: 'done' as const, vaccine_history: [result.history] }
+            ? { ...s, status: 'done' as const, vaccine_history: [result] }
             : s
         )
       );
@@ -402,6 +445,7 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     markAsSkipped,
     undoMarkAsDone,
     undoSkipped,
+    addManualSchedule,
     getSchedulesByAgeMonth,
   };
 

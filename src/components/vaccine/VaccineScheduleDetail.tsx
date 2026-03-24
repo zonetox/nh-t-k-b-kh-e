@@ -18,11 +18,16 @@ import {
   Check, 
   SkipForward,
   Loader2,
-  Info
+  Info,
+  MapPin,
+  FileText,
+  Upload
 } from 'lucide-react';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 import MarkAsDoneDialog from './MarkAsDoneDialog';
 
 interface VaccineScheduleDetailProps {
@@ -64,7 +69,7 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { markAsSkipped, undoSkipped } = useVaccine();
+  const { markAsSkipped, undoSkipped, undoMarkAsDone } = useVaccine();
   const [isLoading, setIsLoading] = useState(false);
   const [markAsDoneOpen, setMarkAsDoneOpen] = useState(false);
 
@@ -86,6 +91,20 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
   const handleUndoSkipped = async () => {
     setIsLoading(true);
     const result = await undoSkipped(schedule.id);
+    setIsLoading(false);
+    
+    if (result.success) {
+      onOpenChange(false);
+    }
+  };
+
+  const handleUndoMarkAsDone = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy xác nhận tiêm chủng này? Trạng thái sẽ quay về chưa tiêm.')) {
+      return;
+    }
+    
+    setIsLoading(true);
+    const result = await undoMarkAsDone(schedule.id);
     setIsLoading(false);
     
     if (result.success) {
@@ -197,48 +216,105 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
             )}
 
             {/* Vaccine history if done */}
-            {schedule.status === 'done' && schedule.vaccine_history && schedule.vaccine_history[0] && (
-              <div className="bg-success/5 border border-success/30 rounded-lg p-4 space-y-2">
+            {schedule.status === 'done' && (
+              <div className="bg-success/5 border border-success/30 rounded-lg p-4 space-y-4">
                 <h4 className="font-medium text-success flex items-center gap-1">
                   <Check className="h-4 w-4" />
-                  Đã hoàn thành
+                  Thông tin xác nhận tiêm
                 </h4>
-                <div className="text-sm space-y-1">
-                  <p>
-                    <span className="text-muted-foreground">Ngày tiêm: </span>
-                    {format(parseISO(schedule.vaccine_history[0].injected_date), 'dd/MM/yyyy', { locale: vi })}
+                
+                {schedule.vaccine_history && schedule.vaccine_history[0] ? (
+                  <div className="text-sm space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase">Ngày tiêm thực tế</Label>
+                        <p className="font-medium">
+                          {format(parseISO(schedule.vaccine_history[0].injected_date), 'dd/MM/yyyy', { locale: vi })}
+                        </p>
+                      </div>
+                      {schedule.vaccine_history[0].batch_number && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground uppercase">Số lô</Label>
+                          <p className="font-medium">{schedule.vaccine_history[0].batch_number}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {schedule.vaccine_history[0].location && (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase">Địa điểm tiêm</Label>
+                        <div className="flex items-start gap-1.5 pt-0.5 text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <p>{schedule.vaccine_history[0].location}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {schedule.vaccine_history[0].notes && (
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground uppercase">Ghi chú</Label>
+                        <div className="flex items-start gap-1.5 pt-0.5 text-muted-foreground">
+                          <FileText className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <p>{schedule.vaccine_history[0].notes}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Display existing images */}
+                    {/* @ts-ignore */}
+                    {schedule.vaccine_history[0].vaccine_history_images && schedule.vaccine_history[0].vaccine_history_images.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-success/20">
+                        <Label className="text-[10px] text-muted-foreground uppercase">Ảnh minh chứng</Label>
+                        <div className="flex gap-2 flex-wrap">
+                          {/* @ts-ignore */}
+                          {schedule.vaccine_history[0].vaccine_history_images.map((img: any, idx: number) => {
+                            const isPath = !img.image_url.startsWith('http');
+                            const displayUrl = isPath 
+                              ? supabase.storage.from('vaccination-certificates').getPublicUrl(img.image_url).data.publicUrl
+                              : img.image_url;
+                              
+                            return (
+                              <a 
+                                key={idx} 
+                                href={displayUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="h-16 w-16 rounded-md overflow-hidden border border-success/20 hover:opacity-80 transition-opacity"
+                              >
+                                <img src={displayUrl} alt="Minh chứng" className="h-full w-full object-cover" />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Chưa có thông tin chi tiết lịch sử tiêm (Mũi tiêm cũ).
                   </p>
-                  {schedule.vaccine_history[0].location && (
-                    <p>
-                      <span className="text-muted-foreground">Địa điểm: </span>
-                      {schedule.vaccine_history[0].location}
-                    </p>
-                  )}
-                  {schedule.vaccine_history[0].batch_number && (
-                    <p>
-                      <span className="text-muted-foreground">Số lô: </span>
-                      {schedule.vaccine_history[0].batch_number}
-                    </p>
-                  )}
-                  {schedule.vaccine_history[0].notes && (
-                    <p className="pt-2 border-t border-success/20">
-                      <span className="text-muted-foreground">Ghi chú: </span>
-                      {schedule.vaccine_history[0].notes}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             )}
           </div>
 
           <DialogFooter>
             {schedule.status === 'done' ? (
-              <div className="flex w-full sm:w-auto gap-2 justify-end">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <div className="flex w-full justify-between gap-2 overflow-hidden">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="h-9 px-3 text-xs"
+                    onClick={handleUndoMarkAsDone}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                    Hoàn tác (Đánh dấu chưa tiêm)
+                  </Button>
+                </div>
+                <Button variant="outline" size="sm" className="h-9 px-4" onClick={() => onOpenChange(false)}>
                   Đóng
-                </Button>
-                <Button onClick={handleMarkAsDone}>
-                  Xem chi tiết / Hoàn tác
                 </Button>
               </div>
             ) : schedule.status === 'skipped' ? (

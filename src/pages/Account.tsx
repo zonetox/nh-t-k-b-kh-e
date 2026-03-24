@@ -142,7 +142,7 @@ const Account: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
+      <main className="container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-2xl space-y-6">
         
         {/* Profile Section */}
         <Card>

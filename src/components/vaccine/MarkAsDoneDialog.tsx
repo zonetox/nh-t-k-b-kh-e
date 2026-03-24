@@ -85,19 +85,24 @@ const MarkAsDoneDialog: React.FC<MarkAsDoneDialogProps> = ({
   const uploadImages = async (scheduleId: string): Promise<string[]> => {
     if (selectedFiles.length === 0) return [];
     
+    // Get current user ID for RLS-compliant path (must start with userId/)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Không thể xác thực người dùng');
+
     const imageUrls: string[] = [];
     
     for (const file of selectedFiles) {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `${scheduleId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      // RLS policy: path[0] must equal auth.uid()
+      const fileName = `${user.id}/${scheduleId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       
       const { data, error } = await supabase.storage
         .from('vaccination-certificates')
-        .upload(fileName, file);
+        .upload(fileName, file, { upsert: false });
 
       if (error) {
         console.error('Lỗi upload ảnh:', error);
-        throw new Error('Không thể tải ảnh lên hệ thống');
+        throw new Error(`Không thể tải ảnh lên hệ thống: ${error.message}`);
       }
 
       if (data?.path) {

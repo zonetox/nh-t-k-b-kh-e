@@ -64,7 +64,7 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { markAsSkipped } = useVaccine();
+  const { markAsSkipped, undoSkipped } = useVaccine();
   const [isLoading, setIsLoading] = useState(false);
   const [markAsDoneOpen, setMarkAsDoneOpen] = useState(false);
 
@@ -76,6 +76,16 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
   const handleMarkAsSkipped = async () => {
     setIsLoading(true);
     const result = await markAsSkipped(schedule.id);
+    setIsLoading(false);
+    
+    if (result.success) {
+      onOpenChange(false);
+    }
+  };
+
+  const handleUndoSkipped = async () => {
+    setIsLoading(true);
+    const result = await undoSkipped(schedule.id);
     setIsLoading(false);
     
     if (result.success) {
@@ -232,9 +242,19 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
                 </Button>
               </div>
             ) : schedule.status === 'skipped' ? (
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Đóng
-              </Button>
+              <div className="flex w-full sm:w-auto gap-2 justify-end">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Đóng
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleUndoSkipped}
+                  disabled={isLoading}
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Hoàn tác bỏ qua
+                </Button>
+              </div>
             ) : (
               <>
                 <Button 

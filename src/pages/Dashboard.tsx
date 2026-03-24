@@ -149,6 +149,12 @@ const Dashboard: React.FC = () => {
                 </Link>
               )}
               <NotificationBell />
+              <Link to="/vaccine-reference">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Info className="h-4 w-4" />
+                  <span className="hidden sm:inline">Tra cứu Vắc xin</span>
+                </Button>
+              </Link>
               <Link to="/babies">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Settings className="h-4 w-4" />

@@ -21,6 +21,7 @@ const Account = lazy(() => import("./pages/Account"));
 const BabiesPage = lazy(() => import("./pages/BabiesPage"));
 const UpgradePage = lazy(() => import("./pages/UpgradePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const VaccineReference = lazy(() => import("./pages/VaccineReference"));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -66,6 +67,7 @@ const App = () => (
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/auth/login" element={<Login />} />
                     <Route path="/auth/register" element={<Register />} />
+                    <Route path="/vaccine-reference" element={<VaccineReference />} />
                     
                     {/* Protected routes */}
                     <Route 

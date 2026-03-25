@@ -42,8 +42,7 @@ const VaccineBot = () => {
     setIsLoading(true);
 
     try {
-      // 1. Smart multi-match search
-      // We fetch top 3 potential matches to find the best fit
+      // 1. Smart multi-match search - Fetch more results for better JS ranking
       const { data, error } = await supabase
         .from('vaccine_knowledge')
         .select('*')
@@ -51,29 +50,12 @@ const VaccineBot = () => {
           type: 'websearch',
           config: 'simple'
         })
-        .limit(3);
+        .limit(10); // Fetch more results for ranking
 
-      let bestMatch = data?.[0];
+      let results = data || [];
       
-      // If we have multiple, try to find one where the question matches better
-      if (data && data.length > 1) {
-        const lowerMsg = userMsg.toLowerCase();
-        const scores = data.map(item => {
-          let score = 0;
-          if (item.question.toLowerCase().includes(lowerMsg)) score += 10;
-          const words = lowerMsg.split(/\s+/);
-          words.forEach(word => {
-            if (item.keywords.toLowerCase().includes(word)) score += 1;
-            if (item.question.toLowerCase().includes(word)) score += 2;
-          });
-          return { item, score };
-        });
-        scores.sort((a, b) => b.score - a.score);
-        bestMatch = scores[0].item;
-      }
-
       // 2. Fallback to broad ILIKE if no textSearch results
-      if (!bestMatch) {
+      if (results.length === 0) {
         const searchTerms = userMsg.toLowerCase().split(/\s+/).filter(w => w.length > 1);
         if (searchTerms.length > 0) {
           const orConditions = searchTerms.map(term => `keywords.ilike.%${term}%,question.ilike.%${term}%`).join(',');
@@ -81,25 +63,53 @@ const VaccineBot = () => {
             .from('vaccine_knowledge')
             .select('*')
             .or(orConditions)
-            .limit(1);
-          bestMatch = fallbackData?.[0];
+            .limit(10);
+          results = fallbackData || [];
         }
       }
 
-      if (bestMatch) {
-        setMessages(prev => [...prev, { 
-          id: Date.now().toString(), 
-          role: 'bot', 
-          content: bestMatch.answer,
-          source: bestMatch.source
-        }]);
-      } else {
-        setMessages(prev => [...prev, { 
-          id: Date.now().toString(), 
-          role: 'bot', 
-          content: 'Chào ba mẹ, hiện tại mình chỉ có thông tin chính quy về lịch tiêm, phản ứng sau tiêm (sốt, sưng), và các loại vắc-xin 5in1/6in1/phế cầu... Ba mẹ thử hỏi ngắn gọn hơn như "mấy mũi", "tiêm trễ" hoặc "sốt" nhé!' 
-        }]);
+      // 3. Superior JS Ranking Algorithm
+      if (results.length > 0) {
+        const lowerMsg = userMsg.toLowerCase();
+        const msgWords = lowerMsg.split(/\s+/).filter(w => w.length > 1);
+        
+        const scoredResults = results.map(item => {
+          let score = 0;
+          const lowerQuestion = item.question.toLowerCase();
+          const lowerKeywords = item.keywords.toLowerCase();
+          
+          // Exact sub-phrase match (highest priority)
+          if (lowerQuestion.includes(lowerMsg)) score += 50;
+          if (lowerKeywords.includes(lowerMsg)) score += 30;
+          
+          // Keyword overlap count
+          msgWords.forEach(word => {
+            if (lowerQuestion.includes(word)) score += 10;
+            if (lowerKeywords.includes(word)) score += 5;
+          });
+          
+          return { item, score };
+        });
+
+        scoredResults.sort((a, b) => b.score - a.score);
+        const bestMatch = scoredResults[0].item;
+
+        if (scoredResults[0].score > 0) {
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            role: 'bot', 
+            content: bestMatch.answer,
+            source: bestMatch.source
+          }]);
+          return;
+        }
       }
+
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        role: 'bot', 
+        content: `Chào ba mẹ, mình hiện đang học hỏi kiến thức từ **Bộ Y Tế, VNVC và WHO**. Với câu hỏi "${userMsg}", mình chưa tìm thấy đoạn trích chính xác. Ba mẹ thử hỏi ngắn gọn như: "mấy mũi", "tiêm trễ", "sốt" nhé!` 
+      }]);
     } catch (error) {
       console.error("Search error:", error);
       setMessages(prev => [...prev, { 
@@ -114,44 +124,44 @@ const VaccineBot = () => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Reverted to larger MessageCircle */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-15 w-15 rounded-full shadow-2xl shadow-[#0088A9]/40 p-0 z-[999] flex items-center justify-center animate-bounce-slow bg-[#0088A9] hover:bg-[#00708a] border-2 border-white"
+          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-16 w-16 rounded-full shadow-2xl shadow-[#0088A9]/40 p-0 z-[999] flex items-center justify-center animate-bounce-slow bg-[#0088A9] hover:bg-[#00708a] border-2 border-white"
         >
-          <Bot className="h-7 w-7 text-white" />
+          <MessageCircle className="h-8 w-8 text-white" />
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[94vw] max-w-[400px] h-[600px] max-h-[85vh] bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] z-[1000] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[94vw] max-w-[420px] h-[620px] max-h-[85vh] bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] z-[1000] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-5 duration-300">
           {/* Header */}
-          <div className="bg-[#0088A9] text-white flex justify-between items-center px-5 py-5 shrink-0">
+          <div className="bg-[#0088A9] text-white flex justify-between items-center px-6 py-5 shrink-0">
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
-                <Bot className="h-6 w-6 text-white" />
+                <MessageCircle className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h3 className="font-bold text-base tracking-tight leading-tight">Trợ Lý Tiêm Chủng AI</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-                  <p className="text-[11px] text-blue-50 font-medium">Hệ thống tri thức 24/7</p>
+                  <p className="text-[11px] text-blue-50 font-medium">Tri thức từ Bộ Y Tế, VNVC, WHO</p>
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/10 rounded-full" onClick={() => setIsOpen(false)}>
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-white hover:bg-white/10 rounded-full" onClick={() => setIsOpen(false)}>
               <X className="h-6 w-6" />
             </Button>
           </div>
 
           {/* AI Banner Info */}
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-5 py-3.5 shrink-0 flex items-start gap-3.5">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-6 py-4 shrink-0 flex items-start gap-3.5">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-              <strong className="text-amber-700 block mb-0.5 text-[12px]">⚠️ CẢNH BÁO Y TẾ:</strong>
-              Nội dung trích dẫn từ Bộ Y Tế & WHO. Nếu bé có dấu hiệu cấp cứu, vui lòng đưa bé đến trạm y tế gần nhất ngay lập tức!
+              <strong className="text-amber-700 block mb-0.5 text-[12px]">⚠️ THÔNG TIN THAM KHẢO:</strong>
+              Nội dung được tổng hợp từ các nguồn chính quy. Ứng dụng không thay thế bác sĩ chuyên khoa!
             </p>
           </div>
 

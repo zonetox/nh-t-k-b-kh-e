@@ -12,6 +12,7 @@ import { AdminProvider } from "@/contexts/AdminContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AdminRoute from "@/components/admin/AdminRoute";
 import BottomNav from "@/components/layout/BottomNav";
+import VaccineBot from "@/components/chat/VaccineBot";
 
 // Lazy loaded Pages for Route-level Code Splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -118,6 +119,7 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <BottomNav />
+                  <VaccineBot />
                 </Suspense>
                 </NotificationProvider>
               </VaccineProvider>

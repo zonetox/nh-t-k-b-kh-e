@@ -33,6 +33,19 @@ const VaccineExportButton: React.FC = () => {
 
     setIsExporting(true);
     try {
+      // Helper function to convert remote URL to Base64 for jsPDF
+      const getBase64FromUrl = async (url: string): Promise<string> => {
+        const data = await fetch(url);
+        const blob = await data.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+        });
+      };
+
       // @ts-ignore - jspdf types might be missing autotable
       const doc = new jsPDF();
       
@@ -41,33 +54,63 @@ const VaccineExportButton: React.FC = () => {
       doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
       doc.setFont("Roboto");
       
-      // Title - Remove accents for default font compatibility if necessary, or use standard
-      doc.setFontSize(20);
-      doc.text('SỔ TIÊM CHỦNG ĐIỆN TỬ', 105, 15, { align: 'center' });
+      // Header Section
+      let currentY = 15;
       
-      // Baby Info
+      // 1. Baby Avatar (if exists)
+      if (selectedBaby.avatar_url) {
+        try {
+          const avatarBase64 = await getBase64FromUrl(selectedBaby.avatar_url);
+          doc.addImage(avatarBase64, 'JPEG', 14, 10, 25, 25);
+          // Adjust header text to be next to avatar
+          doc.setFontSize(22);
+          doc.text('SỔ TIÊM CHỦNG ĐIỆN TỬ', 45, 20);
+          doc.setFontSize(12);
+          doc.text(`Bé: ${selectedBaby.name}`, 45, 28);
+          doc.text(`Ngày sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 45, 34);
+          currentY = 45;
+        } catch (e) {
+          console.error("Failed to load avatar for PDF:", e);
+          // Fallback if avatar fails
+          doc.setFontSize(20);
+          doc.text('SỔ TIÊM CHỦNG ĐIỆN TỬ', 105, 15, { align: 'center' });
+          doc.setFontSize(12);
+          doc.text(`Họ tên bé: ${selectedBaby.name}`, 14, 25);
+          doc.text(`Ngày sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 14, 32);
+          currentY = 42;
+        }
+      } else {
+        doc.setFontSize(20);
+        doc.text('SỔ TIÊM CHỦNG ĐIỆN TỬ', 105, 15, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Họ tên bé: ${selectedBaby.name}`, 14, 25);
+        doc.text(`Ngày sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 14, 32);
+        currentY = 42;
+      }
+
       doc.setFontSize(12);
-      doc.text(`Họ tên bé: ${selectedBaby.name}`, 14, 25);
-      doc.text(`Ngày sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 14, 32);
-      doc.text(`Tiến độ: ${stats.completionRate}% (${stats.done}/${stats.total} mũi)`, 14, 39);
+      doc.text(`Tiến độ: ${stats.completionRate}% (${stats.done}/${stats.total} mũi)`, 14, currentY - 5);
       
-      // Table Header and Body
-      const tableColumn = ["Stt", "Vắc-xin", "Mũi", "Ngày dự kiến", "Trạng thái", "Ngày tiêm thực tế"];
+      // 2. Main Vaccination Table
+      const tableColumn = ["Stt", "Vắc-xin", "Mũi", "Ngày dự kiến", "Cơ sở / Mã lô", "Ngày tiêm thực tế"];
       const tableRows = schedules.map((s, index) => {
         let scheduledDateStr = '-';
         try {
           scheduledDateStr = format(new Date(s.scheduled_date), 'dd/MM/yyyy');
-        } catch (e) {
-          console.error('Invalid scheduled date:', s.scheduled_date);
-        }
+        } catch (e) {}
 
         let injectedDateStr = '-';
-        if (s.vaccine_history?.[0]?.injected_date) {
+        let detailStr = '-';
+        if (s.vaccine_history?.[0]) {
+          const hist = s.vaccine_history[0];
           try {
-            injectedDateStr = format(new Date(s.vaccine_history[0].injected_date), 'dd/MM/yyyy');
-          } catch (e) {
-            console.error('Invalid injected date:', s.vaccine_history[0].injected_date);
-          }
+            injectedDateStr = format(new Date(hist.injected_date), 'dd/MM/yyyy');
+          } catch (e) {}
+          
+          const parts = [];
+          if (hist.location) parts.push(hist.location);
+          if (hist.batch_number) parts.push(`Lô: ${hist.batch_number}`);
+          detailStr = parts.join('\n') || '-';
         }
 
         return [
@@ -75,7 +118,7 @@ const VaccineExportButton: React.FC = () => {
           s.vaccines?.short_name || s.vaccines?.name || 'Vắc-xin',
           s.dose_number,
           scheduledDateStr,
-          s.status === 'done' ? 'Đã tiêm' : s.status === 'overdue' ? 'Quá hạn' : 'Chưa tiêm',
+          detailStr,
           injectedDateStr
         ];
       });
@@ -84,25 +127,81 @@ const VaccineExportButton: React.FC = () => {
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 45,
+        startY: currentY,
         theme: 'grid',
-        styles: { font: 'Roboto', fontStyle: 'normal' }, // Hỗ trợ tiếng Việt trong bảng
+        styles: { font: 'Roboto', fontStyle: 'normal', fontSize: 9 },
         headStyles: { fillColor: [66, 133, 244], fontStyle: 'normal' },
+        columnStyles: {
+          4: { cellWidth: 45 }, // Details column wider
+        }
       });
 
+      // 3. Appendix: Certificate Images
+      const allImages: { url: string; label: string }[] = [];
+      schedules.forEach(s => {
+        if (s.vaccine_history?.[0]?.vaccine_history_images) {
+          s.vaccine_history[0].vaccine_history_images.forEach(img => {
+            if (img.image_url) {
+              allImages.push({ 
+                url: img.image_url, 
+                label: `${s.vaccines?.name} (Mũi ${s.dose_number})` 
+              });
+            }
+          });
+        }
+      });
+
+      if (allImages.length > 0) {
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text('PHỤ LỤC: HÌNH ẢNH CHỨNG NHẬN', 105, 20, { align: 'center' });
+        
+        let imgY = 30;
+        let imgX = 14;
+        const imgWidth = 85;
+        const imgHeight = 60;
+        const gutter = 10;
+
+        for (let i = 0; i < allImages.length; i++) {
+          try {
+            const imgData = await getBase64FromUrl(allImages[i].url);
+            
+            // Check if we need a new page
+            if (imgY + imgHeight + 15 > 280) {
+              doc.addPage();
+              imgY = 20;
+            }
+
+            doc.addImage(imgData, 'JPEG', imgX, imgY, imgWidth, imgHeight);
+            doc.setFontSize(8);
+            doc.text(allImages[i].label, imgX, imgY + imgHeight + 5);
+
+            // Alternate columns
+            if (imgX === 14) {
+              imgX = 14 + imgWidth + gutter;
+            } else {
+              imgX = 14;
+              imgY += imgHeight + 15;
+            }
+          } catch (e) {
+            console.error("Failed to add appendix image:", e);
+          }
+        }
+      }
+
       const safeBabyName = selectedBaby.name ? selectedBaby.name.replace(/\s+/g, '_') : 'Be';
-      const fileName = `Lich_tiem_${safeBabyName}_${format(new Date(), 'ddMMyy')}.pdf`;
+      const fileName = `So_tiem_chung_${safeBabyName}_${format(new Date(), 'ddMMyy')}.pdf`;
       doc.save(fileName);
 
       toast({
         title: 'Thành công',
-        description: 'Đã tải xuống sổ tiêm chủng PDF',
+        description: 'Đã tải xuống sổ tiêm chủng PDF hoàn thiện',
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         title: 'Lỗi',
-        description: 'Không thể tạo file PDF. Vui lòng thử lại sau.',
+        description: 'Không thể tạo file PDF chi tiết. Vui lòng thử lại sau.',
         variant: 'destructive',
       });
     } finally {

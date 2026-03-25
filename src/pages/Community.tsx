@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, ThumbsUp, Plus, Search, Filter } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Plus, Search, Filter, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -107,10 +108,17 @@ const Community: React.FC = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="max-w-md mx-auto px-4 pt-6 space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-primary">Cộng đồng</h1>
-            <p className="text-sm text-muted-foreground">Chia sẻ kiến thức & kinh nghiệm</p>
+        <header className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <Link to="/">
+              <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:flex shrink-0 -ml-2">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-primary">Cộng đồng</h1>
+              <p className="text-sm text-muted-foreground">Chia sẻ kiến thức & kinh nghiệm</p>
+            </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

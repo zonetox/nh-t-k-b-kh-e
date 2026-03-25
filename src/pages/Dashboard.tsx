@@ -4,7 +4,7 @@ import { useBaby } from '@/contexts/BabyContext';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw, Shield, Zap, AlertTriangle, Info } from 'lucide-react';
+import { Syringe, LogIn, Baby, Calendar, Bell, Settings, RefreshCw, Shield, Zap, AlertTriangle, Info, MessageSquare } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
 import BabySelector from '@/components/baby/BabySelector';
 import NotificationBell from '@/components/notification/NotificationBell';
@@ -172,6 +172,12 @@ const Dashboard: React.FC = () => {
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Info className="h-4 w-4" />
                   <span className="hidden sm:inline">Tra cứu Vắc xin</span>
+                </Button>
+              </Link>
+              <Link to="/community">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cộng đồng</span>
                 </Button>
               </Link>
               <Link to="/babies">

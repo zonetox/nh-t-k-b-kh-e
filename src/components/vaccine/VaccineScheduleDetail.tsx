@@ -5,9 +5,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -21,7 +22,8 @@ import {
   Info,
   MapPin,
   FileText,
-  Upload
+  Upload,
+  RefreshCw
 } from 'lucide-react';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -119,7 +121,9 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
   return (
     <>
       <Dialog open={open && !markAsDoneOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md p-0 overflow-hidden sm:rounded-2xl">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Syringe className="h-5 w-5 text-primary" />
@@ -362,6 +366,8 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
               </>
             )}
           </DialogFooter>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

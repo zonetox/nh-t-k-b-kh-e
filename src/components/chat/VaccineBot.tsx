@@ -42,8 +42,8 @@ const VaccineBot = () => {
     setIsLoading(true);
 
     try {
-      // 1. Improved search logic using textSearch for better ranking
-      // Postgres will rank results based on match count
+      // 1. Smart multi-match search
+      // We fetch top 3 potential matches to find the best fit
       const { data, error } = await supabase
         .from('vaccine_knowledge')
         .select('*')
@@ -51,37 +51,53 @@ const VaccineBot = () => {
           type: 'websearch',
           config: 'simple'
         })
-        .limit(1);
+        .limit(3);
 
-      let result = data?.[0];
+      let bestMatch = data?.[0];
+      
+      // If we have multiple, try to find one where the question matches better
+      if (data && data.length > 1) {
+        const lowerMsg = userMsg.toLowerCase();
+        const scores = data.map(item => {
+          let score = 0;
+          if (item.question.toLowerCase().includes(lowerMsg)) score += 10;
+          const words = lowerMsg.split(/\s+/);
+          words.forEach(word => {
+            if (item.keywords.toLowerCase().includes(word)) score += 1;
+            if (item.question.toLowerCase().includes(word)) score += 2;
+          });
+          return { item, score };
+        });
+        scores.sort((a, b) => b.score - a.score);
+        bestMatch = scores[0].item;
+      }
 
-      // 2. Fallback to broad ILIKE matching if textSearch is too strict
-      if (!result) {
+      // 2. Fallback to broad ILIKE if no textSearch results
+      if (!bestMatch) {
         const searchTerms = userMsg.toLowerCase().split(/\s+/).filter(w => w.length > 1);
         if (searchTerms.length > 0) {
-          // We look for terms in question or keywords
           const orConditions = searchTerms.map(term => `keywords.ilike.%${term}%,question.ilike.%${term}%`).join(',');
           const { data: fallbackData } = await supabase
             .from('vaccine_knowledge')
             .select('*')
             .or(orConditions)
             .limit(1);
-          result = fallbackData?.[0];
+          bestMatch = fallbackData?.[0];
         }
       }
 
-      if (result) {
+      if (bestMatch) {
         setMessages(prev => [...prev, { 
           id: Date.now().toString(), 
           role: 'bot', 
-          content: result.answer,
-          source: result.source
+          content: bestMatch.answer,
+          source: bestMatch.source
         }]);
       } else {
         setMessages(prev => [...prev, { 
           id: Date.now().toString(), 
           role: 'bot', 
-          content: 'Xin lỗi, mình chưa tìm thấy thông tin chính quy khớp với câu hỏi của bạn. Ba mẹ thử nhập từ khóa ngắn gọn hơn nhé (VD: "sốt", "trễ lịch", "6in1").' 
+          content: 'Chào ba mẹ, hiện tại mình chỉ có thông tin chính quy về lịch tiêm, phản ứng sau tiêm (sốt, sưng), và các loại vắc-xin 5in1/6in1/phế cầu... Ba mẹ thử hỏi ngắn gọn hơn như "mấy mũi", "tiêm trễ" hoặc "sốt" nhé!' 
         }]);
       }
     } catch (error) {
@@ -89,7 +105,7 @@ const VaccineBot = () => {
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         role: 'bot', 
-        content: 'Đã có lỗi xảy ra khi tra cứu, vui lòng thử lại sau.' 
+        content: 'Đã có lỗi hệ thống khi kết nối đến Thư viện tri thức. Ba mẹ vui lòng thử lại sau.' 
       }]);
     } finally {
       setIsLoading(false);
@@ -102,36 +118,40 @@ const VaccineBot = () => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 p-0 z-[999] flex items-center justify-center animate-bounce-slow"
+          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-15 w-15 rounded-full shadow-2xl shadow-[#0088A9]/40 p-0 z-[999] flex items-center justify-center animate-bounce-slow bg-[#0088A9] hover:bg-[#00708a] border-2 border-white"
         >
-          <MessageCircle className="h-6 w-6 text-white" />
+          <Bot className="h-7 w-7 text-white" />
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[92vw] max-w-[380px] h-[550px] max-h-[75vh] bg-white border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] z-[1000] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[94vw] max-w-[400px] h-[600px] max-h-[85vh] bg-white border-0 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] z-[1000] flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-5 duration-300">
           {/* Header */}
-          <div className="bg-[#0088A9] text-white flex justify-between items-center px-4 py-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <Bot className="h-5 w-5" />
+          <div className="bg-[#0088A9] text-white flex justify-between items-center px-5 py-5 shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
+                <Bot className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-sm tracking-tight">Tra Cứu Tiêm Chủng</h3>
-                <p className="text-[10px] text-blue-50 font-medium">Hỗ trợ tự động 24/7</p>
+                <h3 className="font-bold text-base tracking-tight leading-tight">Trợ Lý Tiêm Chủng AI</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
+                  <p className="text-[11px] text-blue-50 font-medium">Hệ thống tri thức 24/7</p>
+                </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/10" onClick={() => setIsOpen(false)}>
-              <X className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-white hover:bg-white/10 rounded-full" onClick={() => setIsOpen(false)}>
+              <X className="h-6 w-6" />
             </Button>
           </div>
 
-          {/* Legal Disclaimer Improved Contrast */}
-          <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 shrink-0 flex items-start gap-3">
+          {/* AI Banner Info */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-5 py-3.5 shrink-0 flex items-start gap-3.5">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-              <strong className="text-amber-700">Miễn trừ trách nhiệm:</strong> Nội dung mang tính tham khảo y khoa chung từ Bộ Y Tế. Ba mẹ không nên tự ý điều trị, hãy tham vấn ý kiến bác sĩ trực tiếp!
+              <strong className="text-amber-700 block mb-0.5 text-[12px]">⚠️ CẢNH BÁO Y TẾ:</strong>
+              Nội dung trích dẫn từ Bộ Y Tế & WHO. Nếu bé có dấu hiệu cấp cứu, vui lòng đưa bé đến trạm y tế gần nhất ngay lập tức!
             </p>
           </div>
 

@@ -1371,6 +1371,18 @@ export type Database = {
         Args: { p_admin_id: string; p_vaccine_id: string }
         Returns: undefined
       }
+      mark_vaccine_done_atomic: {
+        Args: {
+          p_schedule_id: string
+          p_user_id: string
+          p_injected_date: string
+          p_batch_number?: string | null
+          p_location?: string | null
+          p_notes?: string | null
+          p_image_paths?: string[] | null
+        }
+        Returns: Database["public"]["Tables"]["vaccine_history"]["Row"]
+      }
       undo_vaccine_completion: {
         Args: { p_schedule_id: string }
         Returns: undefined

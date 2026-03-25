@@ -261,13 +261,11 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
                     )}
 
                     {/* Display existing images */}
-                    {/* @ts-ignore */}
                     {schedule.vaccine_history[0].vaccine_history_images && schedule.vaccine_history[0].vaccine_history_images.length > 0 && (
                       <div className="space-y-2 pt-2 border-t border-success/20">
                         <Label className="text-[10px] text-muted-foreground uppercase">Ảnh minh chứng</Label>
                         <div className="flex gap-2 flex-wrap">
-                          {/* @ts-ignore */}
-                          {schedule.vaccine_history[0].vaccine_history_images.map((img: any, idx: number) => {
+                          {schedule.vaccine_history[0].vaccine_history_images.map((img, idx: number) => {
                             const isPath = !img.image_url.startsWith('http');
                             const displayUrl = isPath 
                               ? supabase.storage.from('vaccination-certificates').getPublicUrl(img.image_url).data.publicUrl

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Check, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import VaccineExportButton from './VaccineExportButton';
 
 const statItemsConfig = [
   { label: 'Đã tiêm', key: 'done' as const, filterTab: 'done', icon: Check, className: 'text-success', bgClassName: 'bg-success/10', hoverClassName: 'hover:bg-success/20' },
@@ -35,7 +36,10 @@ const VaccineStats: React.FC<VaccineStatsProps> = React.memo(({ onStatClick }) =
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Tiến độ tiêm chủng</span>
-            <span className="text-sm font-bold text-primary">{stats.completionRate}%</span>
+            <div className="flex items-center gap-2">
+              <VaccineExportButton />
+              <span className="text-sm font-bold text-primary">{stats.completionRate}%</span>
+            </div>
           </div>
           <Progress value={stats.completionRate} className="h-3" />
           <p className="text-xs text-muted-foreground mt-1">

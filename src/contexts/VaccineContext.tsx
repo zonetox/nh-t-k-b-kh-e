@@ -5,17 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { differenceInCalendarMonths, differenceInCalendarDays, parseISO } from 'date-fns';
 
-export interface VaccineSchedule {
-  id: string;
-  baby_id: string;
-  vaccine_id: string;
-  dose_number: number;
-  scheduled_date: string;
+import { Database } from '@/integrations/supabase/types';
+
+type PublicTables = Database['public']['Tables'];
+type VaccineRow = PublicTables['vaccines']['Row'];
+type HistoryRow = PublicTables['vaccine_history']['Row'];
+type ImageRow = PublicTables['vaccine_history_images']['Row'];
+
+export interface VaccineSchedule extends Omit<PublicTables['vaccine_schedules']['Row'], 'status'> {
   status: 'pending' | 'upcoming' | 'overdue' | 'done' | 'skipped';
-  skipped_reason?: string | null;
-  is_manual: boolean;
-  created_at: string;
-  updated_at: string;
   vaccines: {
     id: string;
     name: string;
@@ -24,17 +22,9 @@ export interface VaccineSchedule {
     type: string;
     total_doses: number;
   };
-  vaccine_history?: {
-    id: string;
-    injected_date: string;
-    batch_number: string | null;
-    location: string | null;
-    notes: string | null;
-    vaccine_history_images?: {
-      id: string;
-      image_url: string;
-    }[];
-  }[] | null;
+  vaccine_history: (HistoryRow & {
+    vaccine_history_images: ImageRow[];
+  })[] | null;
 }
 
 export interface AddManualScheduleInput {
@@ -145,7 +135,8 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const computedData = (data || []).map((schedule: any) => {
         if (['pending', 'upcoming', 'overdue'].includes(schedule.status)) {
           const scheduledDate = parseISO(schedule.scheduled_date);
-          const daysDiff = differenceInCalendarDays(scheduledDate, today);
+          const todayDate = new Date();
+          const daysDiff = differenceInCalendarDays(scheduledDate, todayDate);
           
           let computedStatus = schedule.status;
           if (daysDiff < 0) {
@@ -260,7 +251,6 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return { success: false, error: 'Vui lòng đăng nhập lại' };
       }
 
-      // @ts-ignore - The generated types might not have this RPC yet
       const { data: rpcData, error: rpcError } = await supabase.rpc('mark_vaccine_done_atomic', {
         p_schedule_id: scheduleId,
         p_user_id: userId,

@@ -22,6 +22,7 @@ const BabiesPage = lazy(() => import("./pages/BabiesPage"));
 const UpgradePage = lazy(() => import("./pages/UpgradePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const VaccineReference = lazy(() => import("./pages/VaccineReference"));
+const Community = lazy(() => import("./pages/Community"));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -30,6 +31,7 @@ const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const PaymentManagement = lazy(() => import("./pages/admin/PaymentManagement"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const SystemSettings = lazy(() => import("./pages/admin/SystemSettings"));
 
 // Optimize QueryClient for 10k+ users
 const queryClient = new QueryClient({
@@ -94,6 +96,14 @@ const App = () => (
                           </ProtectedRoute>
                         } 
                       />
+                      <Route 
+                        path="/community" 
+                        element={
+                          <ProtectedRoute>
+                            <Community />
+                          </ProtectedRoute>
+                        } 
+                      />
 
                     {/* Admin routes */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -102,6 +112,7 @@ const App = () => (
                     <Route path="/admin/users" element={<AdminRoute requiredRoles={['support_admin']}><UserManagement /></AdminRoute>} />
                     <Route path="/admin/payments" element={<AdminRoute requiredRoles={['finance_admin']}><PaymentManagement /></AdminRoute>} />
                     <Route path="/admin/audit-logs" element={<AdminRoute requiredRoles={['super_admin']}><AuditLogs /></AdminRoute>} />
+                    <Route path="/admin/settings" element={<AdminRoute><SystemSettings /></AdminRoute>} />
                     
                     {/* Catch-all */}
                     <Route path="*" element={<NotFound />} />

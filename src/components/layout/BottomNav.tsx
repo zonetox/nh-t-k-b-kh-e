@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Syringe, Baby, User } from 'lucide-react';
+import { Syringe, Baby, User, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const BottomNav: React.FC = () => {
@@ -16,6 +16,7 @@ const BottomNav: React.FC = () => {
   const tabs = [
     { path: '/', label: 'Lịch tiêm', icon: Syringe },
     { path: '/babies', label: 'Bé yêu', icon: Baby },
+    { path: '/community', label: 'Cộng đồng', icon: MessageSquare },
     { path: '/account', label: 'Tài khoản', icon: User },
   ];
 

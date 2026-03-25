@@ -13,6 +13,7 @@ import {
   Shield,
   LogOut,
   BarChart3,
+  Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, description 
     { path: '/admin/users', label: 'Quản lý người dùng', icon: Users, show: isSupportAdmin },
     { path: '/admin/payments', label: 'Quản lý thanh toán', icon: CreditCard, show: isFinanceAdmin },
     { path: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: FileText, show: isSuperAdmin },
+    { path: '/admin/settings', label: 'Cấu hình hệ thống', icon: Settings2, show: isSuperAdmin },
   ];
 
   return (

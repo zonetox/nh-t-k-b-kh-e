@@ -30,6 +30,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   updateSettings: (settings: Partial<NotificationSettings>) => Promise<{ success: boolean; error?: string }>;
+  requestPushPermission: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const defaultSettings: NotificationSettings = {
@@ -177,8 +178,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     newSettings: Partial<NotificationSettings>
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const userId = session?.session?.user?.id;
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
       if (!userId) return { success: false, error: 'Not authenticated' };
 
       const merged = { ...settings, ...newSettings };
@@ -197,9 +198,73 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error) return { success: false, error: error.message };
 
       setSettings(merged);
+
+      // If enabling push, request permission
+      if (newSettings.enable_push) {
+        await requestPushPermission();
+      }
+
       return { success: true };
     } catch (e) {
       return { success: false, error: 'Unexpected error' };
+    }
+  };
+
+  const requestPushPermission = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return { success: false, error: 'Trình duyệt không hỗ trợ thông báo đẩy' };
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        return { success: false, error: 'Quyền thông báo bị từ chối' };
+      }
+
+      // Register SW if not already
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      
+      // Fetch dynamic VAPID key from DB
+      const { data: configData } = await supabase
+        .from('system_configs')
+        .select('value')
+        .eq('key', 'vapid_public_key')
+        .maybeSingle();
+
+      const vapidPublicKey = (configData?.value as string) || 'BCV_W_w3z6E86-Z-15L_9E57A6_vO9A9c9uY_k4104O442E5Y5-5o8u0A9Y7uY9-8uY8uY8uY8uY'; // Fallback to placeholder if not set
+
+      // Get subscription
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidPublicKey
+      });
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return { success: false, error: 'Not authenticated' };
+
+      // Save to user_devices
+      const { error } = await supabase
+        .from('user_devices')
+        .upsert({
+          user_id: userId,
+          device_token: JSON.stringify(subscription),
+          device_type: 'web',
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'device_token'
+        });
+
+      if (error) {
+        console.error('Error saving device token:', error);
+        return { success: false, error: 'Không thể lưu token thông báo' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Push registration error:', error);
+      return { success: false, error: 'Lỗi đăng ký thông báo đẩy' };
     }
   };
 
@@ -215,6 +280,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         markAsRead,
         markAllAsRead,
         updateSettings,
+        requestPushPermission,
       }}
     >
       {children}

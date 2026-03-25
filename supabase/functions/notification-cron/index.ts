@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
         }
 
         // Create in-app notification
-        if (job.channel === 'inapp') {
+        if (job.channel === 'inapp' || job.channel === 'push') {
           const scheduleId = job.schedule_id
           const { error: notifError } = await supabase
             .from('notifications')
@@ -159,6 +159,23 @@ Deno.serve(async (req) => {
             })
 
           if (notifError) throw notifError
+
+          // If channel is push, also call push-service
+          if (job.channel === 'push' || (job.channel === 'inapp' && scheduleStatus === 'upcoming')) {
+             await fetch(`${supabaseUrl}/functions/v1/push-service`, {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${serviceRoleKey}`
+               },
+               body: JSON.stringify({
+                 user_id: job.user_id,
+                 title,
+                 body,
+                 data: { url: `/vaccine/${scheduleId}` }
+               })
+             }).catch(err => console.error('Error calling push-service:', err));
+          }
         }
 
         // Mark job as sent

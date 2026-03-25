@@ -33,16 +33,26 @@ const VaccineExportButton: React.FC = () => {
 
     setIsExporting(true);
     try {
-      // Helper function to convert remote URL to Base64 for jsPDF
-      const getBase64FromUrl = async (url: string): Promise<string> => {
-        const data = await fetch(url);
-        const blob = await data.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          reader.onloadend = () => {
-            resolve(reader.result as string);
+      // Robust helper to convert remote URL to compatible DataURL using Canvas
+      const getNormalizedImageDataUrl = async (url: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous'; // Crucial for Supabase CORS
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Failed to get canvas context'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0);
+            // Convert to JPEG for smallest PDF size while maintaining quality
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
           };
+          img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
+          img.src = url;
         });
       };
 
@@ -60,7 +70,7 @@ const VaccineExportButton: React.FC = () => {
       // 1. Baby Avatar (if exists)
       if (selectedBaby.avatar_url) {
         try {
-          const avatarBase64 = await getBase64FromUrl(selectedBaby.avatar_url);
+          const avatarBase64 = await getNormalizedImageDataUrl(selectedBaby.avatar_url);
           doc.addImage(avatarBase64, 'JPEG', 14, 10, 25, 25);
           // Adjust header text to be next to avatar
           doc.setFontSize(22);
@@ -164,7 +174,7 @@ const VaccineExportButton: React.FC = () => {
 
         for (let i = 0; i < allImages.length; i++) {
           try {
-            const imgData = await getBase64FromUrl(allImages[i].url);
+            const imgData = await getNormalizedImageDataUrl(allImages[i].url);
             
             // Check if we need a new page
             if (imgY + imgHeight + 15 > 280) {

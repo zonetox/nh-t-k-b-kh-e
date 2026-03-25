@@ -1,10 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useVaccine, VaccineSchedule } from '@/contexts/VaccineContext';
 import { useBaby } from '@/contexts/BabyContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import VaccineCard from './VaccineCard';
+import AddOptionalVaccineDialog from './AddOptionalVaccineDialog';
 import { cn } from '@/lib/utils';
 import { differenceInCalendarMonths, parseISO } from 'date-fns';
 
@@ -85,6 +88,7 @@ MonthGroup.displayName = 'MonthGroup';
 const VaccineTimeline: React.FC<VaccineTimelineProps> = React.memo(({ onSelectSchedule }) => {
   const { getSchedulesByAgeMonth, isLoading, schedules } = useVaccine();
   const { selectedBaby } = useBaby();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const { schedulesByMonth, sortedMonths, currentAgeMonths } = useMemo(() => {
     if (!selectedBaby || schedules.length === 0) {
@@ -113,11 +117,17 @@ const VaccineTimeline: React.FC<VaccineTimelineProps> = React.memo(({ onSelectSc
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Lịch tiêm theo tháng tuổi</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Bé hiện tại: tháng thứ {currentAgeMonths}
-        </p>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg">Lịch tiêm theo tháng tuổi</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Bé hiện tại: tháng thứ {currentAgeMonths}
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setAddDialogOpen(true)} variant="outline" className="gap-1 mt-0">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Thêm mũi</span>
+        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[500px]">
@@ -134,6 +144,7 @@ const VaccineTimeline: React.FC<VaccineTimelineProps> = React.memo(({ onSelectSc
           </div>
         </ScrollArea>
       </CardContent>
+      <AddOptionalVaccineDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </Card>
   );
 });

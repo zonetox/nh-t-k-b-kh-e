@@ -95,6 +95,9 @@ const VaccineCard: React.FC<VaccineCardProps> = React.memo(({
               "text-sm font-medium truncate",
               schedule.status === 'skipped' && "line-through"
             )}>
+              <span className="text-xs font-normal text-muted-foreground mr-1.5 break-normal">
+                {format(parseISO(schedule.scheduled_date), 'dd/MM/yyyy', { locale: vi })}
+              </span>
               {schedule.vaccines?.name || schedule.vaccines?.short_name}
             </p>
             <span className={cn(

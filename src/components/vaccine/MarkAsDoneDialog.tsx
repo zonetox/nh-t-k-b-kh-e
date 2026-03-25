@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { VaccineSchedule, useVaccine } from '@/contexts/VaccineContext';
 import { supabase } from '@/integrations/supabase/client';
+import heic2any from 'heic2any';
 import {
   Dialog,
   DialogContent,
@@ -92,13 +93,34 @@ const MarkAsDoneDialog: React.FC<MarkAsDoneDialogProps> = ({
     const imageUrls: string[] = [];
     
     for (const file of selectedFiles) {
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      // Convert HEIC if needed
+      let fileToUpload = file;
+      const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                    file.name.toLowerCase().endsWith('.heif') || 
+                    file.type === 'image/heic';
+      
+      if (isHeic) {
+        try {
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.8,
+          });
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+          fileToUpload = new File([blob], newFileName, { type: 'image/jpeg' });
+        } catch (err) {
+          console.error('Lỗi chuyển đổi HEIC, giữ nguyên file gốc:', err);
+        }
+      }
+
+      const fileExt = fileToUpload.name.split('.').pop()?.toLowerCase() || 'jpg';
       // RLS policy: path[0] must equal auth.uid()
       const fileName = `${user.id}/${scheduleId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       
       const { data, error } = await supabase.storage
         .from('vaccination-certificates')
-        .upload(fileName, file, { upsert: false });
+        .upload(fileName, fileToUpload, { upsert: false });
 
       if (error) {
         console.error('Lỗi upload ảnh:', error);

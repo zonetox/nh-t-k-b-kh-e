@@ -8,10 +8,9 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
-// We assume jspdf and jspdf-autotable are installed
-// If not, the user should run: npm install jspdf jspdf-autotable
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { robotoBase64 } from '@/lib/fonts';
 
 const VaccineExportButton: React.FC = () => {
   const { schedules, stats } = useVaccine();
@@ -37,31 +36,29 @@ const VaccineExportButton: React.FC = () => {
       // @ts-ignore - jspdf types might be missing autotable
       const doc = new jsPDF();
       
-      /**
-       * LƯU Ý CHO NGƯỜI DÙNG:
-       * Để hỗ trợ tiếng Việt có dấu đầy đủ trong PDF, bạn cần nhúng font Unicode (.ttf)
-       * Bạn có thể tải font (VD: Roboto-Regular.ttf), chuyển sang base64 và dùng doc.addFileToVFS()
-       * Hiện tại đang dùng font mặc định (không dấu hoặc font hệ thống)
-       */
+      // Đăng ký font Roboto để hỗ trợ tiếng Việt
+      doc.addFileToVFS("Roboto-Regular.ttf", robotoBase64);
+      doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+      doc.setFont("Roboto");
       
       // Title - Remove accents for default font compatibility if necessary, or use standard
       doc.setFontSize(20);
-      doc.text('SO TIEM CHUNG DIEN TU', 105, 15, { align: 'center' });
+      doc.text('SỔ TIÊM CHỦNG ĐIỆN TỬ', 105, 15, { align: 'center' });
       
       // Baby Info
       doc.setFontSize(12);
-      doc.text(`Ho ten be: ${selectedBaby.name}`, 14, 25);
-      doc.text(`Ngay sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 14, 32);
+      doc.text(`Họ tên bé: ${selectedBaby.name}`, 14, 25);
+      doc.text(`Ngày sinh: ${format(new Date(selectedBaby.dob), 'dd/MM/yyyy')}`, 14, 32);
       doc.text(`Tiến độ: ${stats.completionRate}% (${stats.done}/${stats.total} mũi)`, 14, 39);
       
       // Table Header and Body
-      const tableColumn = ["Stt", "Vac-xin", "Mui", "Ngay du kien", "Trang thai", "Ngay tiem thuc te"];
+      const tableColumn = ["Stt", "Vắc-xin", "Mũi", "Ngày dự kiến", "Trạng thái", "Ngày tiêm thực tế"];
       const tableRows = schedules.map((s, index) => [
         index + 1,
         s.vaccines?.short_name || s.vaccines?.name,
         s.dose_number,
         format(new Date(s.scheduled_date), 'dd/MM/yyyy'),
-        s.status === 'done' ? 'Da tiem' : s.status === 'overdue' ? 'Qua han' : 'Chua tiem',
+        s.status === 'done' ? 'Đã tiêm' : s.status === 'overdue' ? 'Quá hạn' : 'Chưa tiêm',
         s.vaccine_history?.[0] ? format(new Date(s.vaccine_history[0].injected_date), 'dd/MM/yyyy') : '-'
       ]);
 
@@ -71,6 +68,7 @@ const VaccineExportButton: React.FC = () => {
         body: tableRows,
         startY: 45,
         theme: 'grid',
+        styles: { font: 'Roboto' }, // Hỗ trợ tiếng Việt trong bảng
         headStyles: { fillColor: [66, 133, 244] },
       });
 

@@ -4,6 +4,7 @@ import { FileDown, Loader2 } from 'lucide-react';
 import { useVaccine } from '@/contexts/VaccineContext';
 import { useBaby } from '@/contexts/BabyContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +34,14 @@ const VaccineExportButton: React.FC = () => {
 
     setIsExporting(true);
     try {
+      // Helper to resolve storage paths to public URLs
+      const resolveStoragePath = (path: string, bucket: string = 'vaccination-certificates') => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path; // Already a full URL
+        const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+        return data.publicUrl;
+      };
+
       // Robust helper to convert remote URL to compatible DataURL using Canvas
       const getNormalizedImageDataUrl = async (url: string): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -70,7 +79,8 @@ const VaccineExportButton: React.FC = () => {
       // 1. Baby Avatar (if exists)
       if (selectedBaby.avatar_url) {
         try {
-          const avatarBase64 = await getNormalizedImageDataUrl(selectedBaby.avatar_url);
+          const avatarUrl = resolveStoragePath(selectedBaby.avatar_url, 'avatars');
+          const avatarBase64 = await getNormalizedImageDataUrl(avatarUrl);
           doc.addImage(avatarBase64, 'JPEG', 14, 10, 25, 25);
           // Adjust header text to be next to avatar
           doc.setFontSize(22);
@@ -152,8 +162,9 @@ const VaccineExportButton: React.FC = () => {
         if (s.vaccine_history?.[0]?.vaccine_history_images) {
           s.vaccine_history[0].vaccine_history_images.forEach(img => {
             if (img.image_url) {
+              const fullUrl = resolveStoragePath(img.image_url, 'vaccination-certificates');
               allImages.push({ 
-                url: img.image_url, 
+                url: fullUrl, 
                 label: `${s.vaccines?.name} (Mũi ${s.dose_number})` 
               });
             }

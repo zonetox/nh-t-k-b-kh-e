@@ -42,41 +42,46 @@ const VaccineBot = () => {
     setIsLoading(true);
 
     try {
-      // Create a search query: replace spaces with | for basic OR text search
-      // Example: "sốt tiêm" -> "sốt | tiêm"
-      const searchTerms = userMsg.toLowerCase().split(/\s+/).filter(w => w.length > 1);
-      
-      let answer = '';
-      let source = '';
+      // 1. Improved search logic using textSearch for better ranking
+      // Postgres will rank results based on match count
+      const { data, error } = await supabase
+        .from('vaccine_knowledge')
+        .select('*')
+        .textSearch('keywords', userMsg.split(/\s+/).join(' | '), {
+          type: 'websearch',
+          config: 'simple'
+        })
+        .limit(1);
 
-      if (searchTerms.length > 0) {
-        // Build ilike query for broader matching since Postgres Vietnamese textSearch can be finicky without custom dicts
-        const orConditions = searchTerms.map(term => `keywords.ilike.%${term}%,question.ilike.%${term}%`).join(',');
-        
-        const { data, error } = await supabase
-          .from('vaccine_knowledge')
-          .select('*')
-          .or(orConditions)
-          .limit(1);
+      let result = data?.[0];
 
-        if (data && data.length > 0) {
-          answer = data[0].answer;
-          source = data[0].source;
+      // 2. Fallback to broad ILIKE matching if textSearch is too strict
+      if (!result) {
+        const searchTerms = userMsg.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+        if (searchTerms.length > 0) {
+          // We look for terms in question or keywords
+          const orConditions = searchTerms.map(term => `keywords.ilike.%${term}%,question.ilike.%${term}%`).join(',');
+          const { data: fallbackData } = await supabase
+            .from('vaccine_knowledge')
+            .select('*')
+            .or(orConditions)
+            .limit(1);
+          result = fallbackData?.[0];
         }
       }
 
-      if (answer) {
+      if (result) {
         setMessages(prev => [...prev, { 
           id: Date.now().toString(), 
           role: 'bot', 
-          content: answer,
-          source: source
+          content: result.answer,
+          source: result.source
         }]);
       } else {
         setMessages(prev => [...prev, { 
           id: Date.now().toString(), 
           role: 'bot', 
-          content: 'Xin lỗi, mình chưa tìm thấy thông tin chính quy khớp với câu hỏi của bạn trong cẩm nang. Bạn thử đổi từ khóa ngắn gọn hơn xem sao nhé (VD: "sốt", "tiêm trễ").' 
+          content: 'Xin lỗi, mình chưa tìm thấy thông tin chính quy khớp với câu hỏi của bạn. Ba mẹ thử nhập từ khóa ngắn gọn hơn nhé (VD: "sốt", "trễ lịch", "6in1").' 
         }]);
       }
     } catch (error) {
@@ -97,34 +102,36 @@ const VaccineBot = () => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full shadow-xl shadow-primary/30 p-0 z-50 flex items-center justify-center animate-bounce-slow"
+          className="fixed bottom-24 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 p-0 z-[999] flex items-center justify-center animate-bounce-slow"
         >
-          <MessageCircle className="h-6 w-6 text-primary-foreground" />
+          <MessageCircle className="h-6 w-6 text-white" />
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[90vw] max-w-[360px] h-[500px] max-h-[70vh] bg-background border rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-[92vw] max-w-[380px] h-[550px] max-h-[75vh] bg-white border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] z-[1000] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
-          <div className="bg-primary text-primary-foreground flex justify-between items-center px-4 py-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
+          <div className="bg-[#0088A9] text-white flex justify-between items-center px-4 py-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Bot className="h-5 w-5" />
+              </div>
               <div>
-                <h3 className="font-bold text-sm">Tra Cứu Tiêm Chủng</h3>
-                <p className="text-[10px] opacity-80">Trả lời tự động từ Thư Viện</p>
+                <h3 className="font-bold text-sm tracking-tight">Tra Cứu Tiêm Chủng</h3>
+                <p className="text-[10px] text-blue-50 font-medium">Hỗ trợ tự động 24/7</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary-foreground hover:bg-primary/50" onClick={() => setIsOpen(false)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/10" onClick={() => setIsOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Legal Disclaimer Always Visible at Top */}
-          <div className="bg-warning/10 border-b border-warning/20 px-3 py-2 shrink-0 flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-            <p className="text-[10px] text-warning-foreground leading-tight">
-              <strong>Miễn trừ trách nhiệm:</strong> Mọi thông tin tra cứu chỉ mang tính chất tham khảo chung từ Bộ Y Tế/VNVC. Ứng dụng không thay thế chẩn đoán y khoa. Vui lòng hỏi ý kiến bác sĩ chuyên khoa!
+          {/* Legal Disclaimer Improved Contrast */}
+          <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 shrink-0 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+              <strong className="text-amber-700">Miễn trừ trách nhiệm:</strong> Nội dung mang tính tham khảo y khoa chung từ Bộ Y Tế. Ba mẹ không nên tự ý điều trị, hãy tham vấn ý kiến bác sĩ trực tiếp!
             </p>
           </div>
 

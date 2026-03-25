@@ -267,37 +267,58 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
                     {/* Display existing images */}
                     {schedule.vaccine_history[0].vaccine_history_images && schedule.vaccine_history[0].vaccine_history_images.length > 0 && (
                       <div className="space-y-2 pt-2 border-t border-success/20">
-                        <Label className="text-[10px] text-muted-foreground uppercase">Ảnh minh chứng</Label>
-                        <div className="flex gap-2 flex-wrap">
-                          {schedule.vaccine_history[0].vaccine_history_images.map((img, idx: number) => {
-                            const isPath = !img.image_url.startsWith('http');
-                            const displayUrl = isPath 
-                              ? supabase.storage.from('vaccination-certificates').getPublicUrl(img.image_url).data.publicUrl
-                              : img.image_url;
+                        <div className="space-y-3 pt-4 border-t border-success/20">
+                          <Label className="text-[10px] text-muted-foreground uppercase font-bold text-success flex items-center gap-1.5">
+                            <Upload className="h-3 w-3" /> Ảnh minh chứng
+                          </Label>
+                          <div className="flex gap-3 flex-wrap">
+                            {schedule.vaccine_history[0].vaccine_history_images.map((img, idx: number) => {
+                              if (!img.image_url) return null;
                               
-                            return (
-                              <a 
-                                key={idx} 
-                                href={displayUrl} 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="h-20 w-20 rounded-md overflow-hidden border border-success/20 hover:opacity-80 transition-opacity shadow-sm bg-muted flex items-center justify-center group relative text-center"
-                                title="Click để xem ảnh lớn"
-                              >
-                                <img 
-                                  src={displayUrl} 
-                                  alt="Minh chứng" 
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Lỗi';
-                                  }}
-                                />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-[10px] text-white font-bold">Xem</span>
-                                </div>
-                              </a>
-                            );
-                          })}
+                              let displayUrl = '';
+                              if (img.image_url.startsWith('http')) {
+                                displayUrl = img.image_url;
+                              } else {
+                                // Clean path from leading slash if any
+                                const cleanPath = img.image_url.startsWith('/') 
+                                  ? img.image_url.substring(1) 
+                                  : img.image_url;
+                                  
+                                // Get public URL
+                                const { data } = supabase.storage
+                                  .from('vaccination-certificates')
+                                  .getPublicUrl(cleanPath);
+                                  
+                                displayUrl = data.publicUrl;
+                              }
+                                
+                              return (
+                                <a 
+                                  key={idx} 
+                                  href={displayUrl} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="h-24 w-24 rounded-2xl overflow-hidden border-2 border-success/10 hover:border-success/40 hover:opacity-90 transition-all shadow-md bg-muted flex items-center justify-center group relative"
+                                  title="Click để xem ảnh lớn"
+                                >
+                                  <img 
+                                    src={displayUrl} 
+                                    alt="Minh chứng" 
+                                    className="h-full w-full object-cover transition-transform group-hover:scale-110 duration-500"
+                                    onError={(e) => {
+                                      const el = e.target as HTMLImageElement;
+                                      if (!el.src.includes('placehold.co')) {
+                                        el.src = 'https://placehold.co/200x200?text=Lỗi+tải+ảnh';
+                                      }
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-[10px] text-white font-bold bg-black/50 px-2 py-0.5 rounded-full border border-white/20">Xem lớn</span>
+                                  </div>
+                                </a>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}

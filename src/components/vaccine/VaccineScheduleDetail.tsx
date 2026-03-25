@@ -288,9 +288,14 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    Chưa có thông tin chi tiết lịch sử tiêm (Mũi tiêm cũ).
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground italic">
+                      Chưa có thông tin chi tiết lịch sử tiêm (Mũi tiêm cũ).
+                    </p>
+                    <p className="text-[11px] text-primary/70 bg-primary/5 p-2 rounded border border-primary/10">
+                      <strong>Mẹo:</strong> Nếu bạn muốn bổ sung ảnh sổ tiêm hoặc chi tiết số lô, địa điểm cho mũi tiêm này, hãy nhấn nút <strong>"Hoàn tác"</strong> bên dưới để đưa trạng thái về chưa tiêm, sau đó nhấn <strong>"Đánh dấu đã tiêm"</strong> để cập nhật thông tin mới.
+                    </p>
+                  </div>
                 )}
               </div>
             )}

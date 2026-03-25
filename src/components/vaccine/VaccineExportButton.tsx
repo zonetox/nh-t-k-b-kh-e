@@ -9,7 +9,7 @@ import { vi } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { robotoBase64 } from '@/lib/fonts';
 
 const VaccineExportButton: React.FC = () => {
@@ -53,17 +53,35 @@ const VaccineExportButton: React.FC = () => {
       
       // Table Header and Body
       const tableColumn = ["Stt", "Vắc-xin", "Mũi", "Ngày dự kiến", "Trạng thái", "Ngày tiêm thực tế"];
-      const tableRows = schedules.map((s, index) => [
-        index + 1,
-        s.vaccines?.short_name || s.vaccines?.name,
-        s.dose_number,
-        format(new Date(s.scheduled_date), 'dd/MM/yyyy'),
-        s.status === 'done' ? 'Đã tiêm' : s.status === 'overdue' ? 'Quá hạn' : 'Chưa tiêm',
-        s.vaccine_history?.[0] ? format(new Date(s.vaccine_history[0].injected_date), 'dd/MM/yyyy') : '-'
-      ]);
+      const tableRows = schedules.map((s, index) => {
+        let scheduledDateStr = '-';
+        try {
+          scheduledDateStr = format(new Date(s.scheduled_date), 'dd/MM/yyyy');
+        } catch (e) {
+          console.error('Invalid scheduled date:', s.scheduled_date);
+        }
+
+        let injectedDateStr = '-';
+        if (s.vaccine_history?.[0]?.injected_date) {
+          try {
+            injectedDateStr = format(new Date(s.vaccine_history[0].injected_date), 'dd/MM/yyyy');
+          } catch (e) {
+            console.error('Invalid injected date:', s.vaccine_history[0].injected_date);
+          }
+        }
+
+        return [
+          index + 1,
+          s.vaccines?.short_name || s.vaccines?.name || 'Vắc-xin',
+          s.dose_number,
+          scheduledDateStr,
+          s.status === 'done' ? 'Đã tiêm' : s.status === 'overdue' ? 'Quá hạn' : 'Chưa tiêm',
+          injectedDateStr
+        ];
+      });
 
       // @ts-ignore
-      doc.autoTable({
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 45,
@@ -72,7 +90,8 @@ const VaccineExportButton: React.FC = () => {
         headStyles: { fillColor: [66, 133, 244] },
       });
 
-      const fileName = `Lich_tiem_${selectedBaby.name.replace(/\s+/g, '_')}_${format(new Date(), 'ddMMyy')}.pdf`;
+      const safeBabyName = selectedBaby.name ? selectedBaby.name.replace(/\s+/g, '_') : 'Be';
+      const fileName = `Lich_tiem_${safeBabyName}_${format(new Date(), 'ddMMyy')}.pdf`;
       doc.save(fileName);
 
       toast({

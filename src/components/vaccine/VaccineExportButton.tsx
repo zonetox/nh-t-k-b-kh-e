@@ -86,8 +86,8 @@ const VaccineExportButton: React.FC = () => {
         body: tableRows,
         startY: 45,
         theme: 'grid',
-        styles: { font: 'Roboto' }, // Hỗ trợ tiếng Việt trong bảng
-        headStyles: { fillColor: [66, 133, 244] },
+        styles: { font: 'Roboto', fontStyle: 'normal' }, // Hỗ trợ tiếng Việt trong bảng
+        headStyles: { fillColor: [66, 133, 244], fontStyle: 'normal' },
       });
 
       const safeBabyName = selectedBaby.name ? selectedBaby.name.replace(/\s+/g, '_') : 'Be';

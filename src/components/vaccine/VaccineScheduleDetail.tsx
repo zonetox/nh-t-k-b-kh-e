@@ -277,9 +277,20 @@ const VaccineScheduleDetail: React.FC<VaccineScheduleDetailProps> = ({
                                 href={displayUrl} 
                                 target="_blank" 
                                 rel="noreferrer" 
-                                className="h-16 w-16 rounded-md overflow-hidden border border-success/20 hover:opacity-80 transition-opacity"
+                                className="h-20 w-20 rounded-md overflow-hidden border border-success/20 hover:opacity-80 transition-opacity shadow-sm bg-muted flex items-center justify-center group relative text-center"
+                                title="Click để xem ảnh lớn"
                               >
-                                <img src={displayUrl} alt="Minh chứng" className="h-full w-full object-cover" />
+                                <img 
+                                  src={displayUrl} 
+                                  alt="Minh chứng" 
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Lỗi';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-[10px] text-white font-bold">Xem</span>
+                                </div>
                               </a>
                             );
                           })}

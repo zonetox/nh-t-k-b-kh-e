@@ -133,6 +133,13 @@ export const VaccineProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const today = new Date();
       const computedData = (data || []).map((schedule: any) => {
+        // Normalize vaccine_history (could be an object due to isOneToOne: true in PostgREST)
+        if (schedule.vaccine_history && !Array.isArray(schedule.vaccine_history)) {
+          schedule.vaccine_history = [schedule.vaccine_history];
+        } else if (!schedule.vaccine_history) {
+          schedule.vaccine_history = [];
+        }
+
         if (['pending', 'upcoming', 'overdue'].includes(schedule.status)) {
           const scheduledDate = parseISO(schedule.scheduled_date);
           const todayDate = new Date();

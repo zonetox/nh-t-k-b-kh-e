@@ -5,12 +5,21 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type Message = {
   id: string;
   role: 'bot' | 'user';
   content: string;
   source?: string;
+};
+
+type VaccineKnowledgeRecord = {
+  id: string;
+  question: string;
+  keywords: string;
+  answer: string;
+  source: string;
 };
 
 const VaccineBot = () => {
@@ -52,7 +61,7 @@ const VaccineBot = () => {
         })
         .limit(10); // Fetch more results for ranking
 
-      let results = data || [];
+      let results: VaccineKnowledgeRecord[] = data || [];
       
       // 2. Fallback to broad ILIKE if no textSearch results
       if (results.length === 0) {
@@ -64,45 +73,61 @@ const VaccineBot = () => {
             .select('*')
             .or(orConditions)
             .limit(10);
-          results = fallbackData || [];
+          results = (fallbackData as VaccineKnowledgeRecord[]) || [];
         }
       }
 
-      // 3. Superior JS Ranking Algorithm
-      if (results.length > 0) {
-        const lowerMsg = userMsg.toLowerCase();
-        const msgWords = lowerMsg.split(/\s+/).filter(w => w.length > 1);
-        
-        const scoredResults = results.map(item => {
-          let score = 0;
-          const lowerQuestion = item.question.toLowerCase();
-          const lowerKeywords = item.keywords.toLowerCase();
-          
-          // Exact sub-phrase match (highest priority)
-          if (lowerQuestion.includes(lowerMsg)) score += 50;
-          if (lowerKeywords.includes(lowerMsg)) score += 30;
-          
-          // Keyword overlap count
-          msgWords.forEach(word => {
-            if (lowerQuestion.includes(word)) score += 10;
-            if (lowerKeywords.includes(word)) score += 5;
-          });
-          
-          return { item, score };
-        });
+      // 3. Use Gemini AI for RAG Context
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (apiKey && results.length > 0) {
+        const contextText = results.slice(0, 3).map((r, i) => `[Nguồn ${i+1}: ${r.source || 'Bộ Y Tế'}]\nCâu hỏi mẫu: ${r.question}\nTrả lời tham khảo: ${r.answer}`).join("\n\n");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        scoredResults.sort((a, b) => b.score - a.score);
-        const bestMatch = scoredResults[0].item;
+        const prompt = `Bạn là trợ lý ảo AI của ứng dụng "Nhật ký tiêm chủng". Bạn được viết để tư vấn tiêm chủng an toàn.
+YÊU CẦU BẮT BUỘC:
+- Bạn CHỈ ĐƯỢC trả lời dựa vào phần "Trích Xuất Dữ Liệu" bên dưới.
+- KHÔNG tự bịa ra kiến thức y khoa, KHÔNG dùng kiến thức của bạn bên ngoài ngữ cảnh được cung cấp.
+- Nếu câu hỏi KHÔNG liên quan đến dữ liệu trong trích xuất, HOẶC câu hỏi không về tiêm chủng nhi/vắc xin, hãy từ chối trả lời: "Dạ thưa ba mẹ, hiện tại con chỉ có dữ liệu chính thống từ Bộ Y tế về lĩnh vực tiêm chủng. Vui lòng liên hệ bác sĩ chuyên khoa hoặc VNVC để được hỗ trợ ạ."
+- Xưng hô là "con" hoặc "mình", gọi người dùng là "ba mẹ".
 
-        if (scoredResults[0].score > 0) {
+Trích Xuất Dữ Liệu:
+${contextText}
+
+Câu hỏi của ba mẹ: "${userMsg}"
+Hãy trả lời tóm tắt, lịch sự, thân thiện.`;
+
+        try {
+          const aiResult = await model.generateContent(prompt);
+          const aiResponse = aiResult.response.text();
+          
+          const uniqueSources = [...new Set(results.slice(0, 3).map(r => r.source).filter(Boolean))].join(", ");
+
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
             role: 'bot', 
-            content: bestMatch.answer,
-            source: bestMatch.source
+            content: aiResponse,
+            source: uniqueSources || 'Bộ Y Tế, VNVC'
+          }]);
+          return;
+        } catch (apiError) {
+          console.error("Gemini API Error:", apiError);
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            role: 'bot', 
+            content: results[0].answer,
+            source: results[0].source
           }]);
           return;
         }
+      } else if (results.length > 0) {
+        setMessages(prev => [...prev, { 
+          id: Date.now().toString(), 
+          role: 'bot', 
+          content: results[0].answer,
+          source: results[0].source
+        }]);
+        return;
       }
 
       setMessages(prev => [...prev, { 

@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      community_comments: {
+        Row: {
+          id: string
+          post_id: string
+          user_id: string
+          content: string
+          created_at: string | null
+        }
+        Insert: { id?: string; post_id: string; user_id: string; content: string; created_at?: string | null }
+        Update: { id?: string; post_id?: string; user_id?: string; content?: string; created_at?: string | null }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      community_likes: {
+        Row: { post_id: string; user_id: string; created_at: string | null }
+        Insert: { post_id: string; user_id: string; created_at?: string | null }
+        Update: { post_id?: string; user_id?: string; created_at?: string | null }
+        Relationships: [
+          {
+            foreignKeyName: "community_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      community_posts: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          content: string
+          category: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: { id?: string; user_id: string; title: string; content: string; category?: string | null; created_at?: string | null; updated_at?: string | null }
+        Update: { id?: string; user_id?: string; title?: string; content?: string; category?: string | null; created_at?: string | null; updated_at?: string | null }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      vaccine_knowledge: {
+        Row: { id: string; question: string; keywords: string; answer: string; source: string | null; created_at: string | null }
+        Insert: { id?: string; question: string; keywords: string; answer: string; source?: string | null; created_at?: string | null }
+        Update: { id?: string; question?: string; keywords?: string; answer?: string; source?: string | null; created_at?: string | null }
+        Relationships: []
+      }
       admin_action_limits: {
         Row: {
           action_count: number

@@ -50,7 +50,7 @@ const Community: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newPost, setNewPost] = useState({ title: '', content: '', category: 'general' });
+  const [newPost, setNewPost] = useState({ title: '', content: '', category: 'reaction' });
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ['community-posts', selectedCategory, searchQuery],
@@ -93,7 +93,7 @@ const Community: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community-posts'] });
       setIsDialogOpen(false);
-      setNewPost({ title: '', content: '', category: 'general' });
+      setNewPost({ title: '', content: '', category: 'reaction' });
       toast({ title: 'Thành công', description: 'Bài viết của bạn đã được đăng.' });
     },
     onError: (error) => {
